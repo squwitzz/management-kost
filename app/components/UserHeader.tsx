@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { User } from '@/app/types';
 import { useState, useEffect, useRef } from 'react';
 import { getNotificationRoute } from '@/app/lib/notificationRouter';
+import { getApiUrl, getBaseUrl } from '@/app/lib/api';
 
 interface Notification {
   id: number;
@@ -76,10 +77,12 @@ export default function UserHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://127.0.0.1:8000/api/notifications/unread-count', {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications/unread-count`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
@@ -99,10 +102,12 @@ export default function UserHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://127.0.0.1:8000/api/notifications', {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
@@ -130,11 +135,13 @@ export default function UserHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`http://127.0.0.1:8000/api/notifications/${id}/read`, {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications/${id}/read`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
@@ -178,11 +185,13 @@ export default function UserHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://127.0.0.1:8000/api/notifications/read-all', {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications/read-all`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
@@ -406,7 +415,7 @@ export default function UserHeader({
                 className="w-full h-full object-cover"
                 src={
                   user?.foto_penghuni
-                    ? `http://127.0.0.1:8000/storage/${user.foto_penghuni}`
+                    ? `${getBaseUrl()}/storage/${user.foto_penghuni}`
                     : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUe_fqSs_mEXImBn1Td_tce-oeWCz2RBOuzeAboY3q2ZSX3x1uhrrYkxyULXIOX-K8gQ7Gwf_Fewm-Dv05BdoAqlylRvBeuzeOje2aH2__JR3wjlyUbdLvM57eBZW52YNy7NHprIBSPZdV0nAq9pgCb4ALVjfkw_NqusJdPlOsrujJK-1utnB_yWit4dwKrwmjHjTlCZQAjqxk3wcTGByTJZPI6r1j8XXvOCoUDWUFX7jxjK0OPESkDug1XkKIWMg9cYssyxUnL40'
                 }
               />

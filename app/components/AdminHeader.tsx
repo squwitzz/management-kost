@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { getNotificationRoute } from '@/app/lib/notificationRouter';
+import { getApiUrl } from '@/app/lib/api';
 
 interface AdminHeaderProps {
   title?: string;
@@ -73,10 +74,12 @@ export default function AdminHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://127.0.0.1:8000/api/notifications/unread-count', {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications/unread-count`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
@@ -96,10 +99,12 @@ export default function AdminHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://127.0.0.1:8000/api/notifications', {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
@@ -127,11 +132,13 @@ export default function AdminHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`http://127.0.0.1:8000/api/notifications/${id}/read`, {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications/${id}/read`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
@@ -177,11 +184,13 @@ export default function AdminHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://127.0.0.1:8000/api/notifications/read-all', {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications/read-all`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 

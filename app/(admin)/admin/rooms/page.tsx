@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Room, User } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
+import { getApiUrl } from '@/app/lib/api';
+import { showSuccess, showError, showDeleteConfirm } from '@/app/lib/sweetalert';
 
 export default function RoomsPage() {
   const router = useRouter();
@@ -37,31 +39,20 @@ export default function RoomsPage() {
   const fetchRooms = async () => {
     try {
       const token = localStorage.getItem('token');
+      const API_URL = getApiUrl();
       
-      // Get API URL - force HTTPS for Vercel production
-      let API_URL = 'http://127.0.0.1:8000/api'; // Default for localhost
-      if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
-        // Force HTTPS for Vercel
-        API_URL = 'https://mykost-cendana.xyz/api';
-      }
-      
-      console.log('Fetching rooms from:', API_URL);
-      
-      // Add cache busting parameter to force fresh data
       const timestamp = new Date().getTime();
       const response = await fetch(`${API_URL}/rooms?_t=${timestamp}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
-        cache: 'no-store', // Disable caching
+        cache: 'no-store',
       });
-
-      console.log('Response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Rooms data:', data);
         setRooms(data.rooms);
       } else {
         const errorData = await response.json();
@@ -75,36 +66,31 @@ export default function RoomsPage() {
   };
 
   const handleDeleteRoom = async (roomId: number, roomNumber: string) => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus kamar ${roomNumber}?`)) {
-      return;
-    }
+    const result = await showDeleteConfirm(`Kamar ${roomNumber}`);
+    if (!result.isConfirmed) return;
 
     try {
       const token = localStorage.getItem('token');
-      
-      // Get API URL - force HTTPS for Vercel production
-      let API_URL = 'http://127.0.0.1:8000/api'; // Default for localhost
-      if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
-        API_URL = 'https://mykost-cendana.xyz/api';
-      }
+      const API_URL = getApiUrl();
       
       const response = await fetch(`${API_URL}/rooms/${roomId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
       if (response.ok) {
-        alert('Kamar berhasil dihapus!');
-        fetchRooms(); // Refresh the list
+        await showSuccess('Success!', 'Kamar berhasil dihapus');
+        fetchRooms();
       } else {
         const data = await response.json();
-        alert(data.error || 'Gagal menghapus kamar');
+        await showError('Error', data.error || 'Gagal menghapus kamar');
       }
     } catch (err) {
-      alert('Gagal menghapus kamar');
+      await showError('Error', 'Gagal menghapus kamar');
       console.error('Delete error:', err);
     }
   };
@@ -112,6 +98,7 @@ export default function RoomsPage() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
     router.push('/login');
   };
 
