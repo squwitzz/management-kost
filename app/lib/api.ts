@@ -7,7 +7,7 @@ export const getApiUrl = () => {
   if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
     return 'https://mykost-cendana.xyz/api';
   }
-  
+
   // Use environment variable or fallback
   return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 };
@@ -50,7 +50,7 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 
   try {
     const response = await fetch(url, enhancedOptions);
-    
+
     // Check for 401 Unauthorized
     if (response.status === 401) {
       try {
@@ -59,11 +59,11 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
       } catch (e) {
         // Ignore JSON parse errors
       }
-      
+
       handleUnauthorized();
       throw new Error('Session expired. Please login again.');
     }
-    
+
     return response;
   } catch (error) {
     // Enhanced error handling for mobile data
@@ -610,16 +610,11 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
+      const error = await response.json();
       throw new Error(error.message || 'Failed to fetch residents');
     }
 
-    const json = await response.json();
-    // Normalize: ensure `users` key exists
-    if (!json.users && (json.residents || json.data || Array.isArray(json))) {
-      json.users = json.residents || json.data || json;
-    }
-    return json;
+    return response.json();
   }
 
   static async registerResident(data: any) {
