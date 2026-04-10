@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { User, Payment } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
+import { ApiClient } from '@/app/lib/api';
+import { showSuccess, showError, showDeleteConfirm } from '@/app/lib/sweetalert';
 
 export default function ResidentsPage() {
   const router = useRouter();
@@ -94,6 +96,33 @@ export default function ResidentsPage() {
     if (latestPayment.status_bayar === 'Lunas') return 'Paid';
     if (latestPayment.status_bayar === 'Menunggu Verifikasi') return 'Pending';
     return 'Overdue';
+  };
+
+  const handleDeleteResident = async (resident: User) => {
+    const result = await showDeleteConfirm(`${resident.nama} (Room ${resident.room?.nomor_kamar || '-'})`);
+    
+    if (result.isConfirmed) {
+      try {
+        await ApiClient.deleteResident(resident.id);
+        
+        // Remove from list
+        setResidents(residents.filter((r) => r.id !== resident.id));
+        showSuccess('Deleted!', 'Resident has been deleted successfully');
+      } catch (err: any) {
+        console.error('Failed to delete resident:', err);
+        showError('Delete Failed', err.message || 'Failed to delete resident');
+      }
+    }
+  };
+
+  const handleEditResident = (resident: User, e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/admin/residents/${resident.id}/edit`);
+  };
+
+  const handleDeleteClick = (resident: User, e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleDeleteResident(resident);
   };
 
   const filteredResidents = residents.filter((resident) => {
@@ -187,21 +216,41 @@ export default function ResidentsPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    {status === 'Paid' ? (
-                      <span className="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-label font-bold rounded-full uppercase tracking-tighter">
-                        Paid
-                      </span>
-                    ) : status === 'Pending' ? (
-                      <span className="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-label font-bold rounded-full uppercase tracking-tighter">
-                        Pending
-                      </span>
-                    ) : (
-                      <span className="px-3 py-1 bg-error-container text-on-error-container text-[10px] font-label font-bold rounded-full uppercase tracking-tighter">
-                        Overdue
-                      </span>
-                    )}
-                    <span className="material-symbols-outlined text-outline-variant text-lg">chevron_right</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-end gap-2">
+                      {status === 'Paid' ? (
+                        <span className="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-label font-bold rounded-full uppercase tracking-tighter">
+                          Paid
+                        </span>
+                      ) : status === 'Pending' ? (
+                        <span className="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-label font-bold rounded-full uppercase tracking-tighter">
+                          Pending
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 bg-error-container text-on-error-container text-[10px] font-label font-bold rounded-full uppercase tracking-tighter">
+                          Overdue
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-1 ml-2">
+                      <button
+                        onClick={(e) => handleEditResident(resident, e)}
+                        className="p-2 hover:bg-surface-container-high rounded-lg transition-colors"
+                        title="Edit Profile"
+                      >
+                        <span className="material-symbols-outlined text-primary text-lg">edit</span>
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteClick(resident, e)}
+                        className="p-2 hover:bg-error-container rounded-lg transition-colors"
+                        title="Delete Resident"
+                      >
+                        <span className="material-symbols-outlined text-error text-lg">delete</span>
+                      </button>
+                      <span className="material-symbols-outlined text-outline-variant text-lg">chevron_right</span>
+                    </div>
                   </div>
                 </div>
               );

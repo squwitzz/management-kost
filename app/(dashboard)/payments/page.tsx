@@ -87,7 +87,7 @@ export default function UserPaymentsPage() {
             Payment History
           </p>
           <h2 className="font-headline font-extrabold text-4xl md:text-6xl text-primary tracking-tighter leading-none">
-            My Payments.
+            My Payments
           </h2>
         </div>
 

@@ -161,7 +161,7 @@ export default function DashboardPage() {
             Resident Dashboard
           </p>
           <h2 className="text-3xl md:text-5xl font-extrabold font-headline tracking-tight text-primary mb-1 md:mb-2">
-            Hello, {user?.nama || 'Guest'}.
+            Hello, {user?.nama || 'Guest'}
           </h2>
           <p className="text-on-surface-variant text-sm md:text-base max-w-md">
             Your stay at The Boarding House is currently active. Here&apos;s a summary of your account and room status.

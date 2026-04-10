@@ -25,6 +25,14 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   
   // Check for 401 Unauthorized
   if (response.status === 401) {
+    // Get error message first
+    try {
+      const errorData = await response.clone().json();
+      console.error('Auth error:', errorData);
+    } catch (e) {
+      // Ignore JSON parse errors
+    }
+    
     handleUnauthorized();
     throw new Error('Session expired. Please login again.');
   }
@@ -239,6 +247,52 @@ export class ApiClient {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || 'Failed to change password');
+    }
+
+    return response.json();
+  }
+
+  // Resident Management
+  static async deleteResident(userId: number) {
+    const response = await fetchWithAuth(`${API_URL}/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete resident');
+    }
+
+    return response.json();
+  }
+
+  static async getResident(userId: number) {
+    const response = await fetchWithAuth(`${API_URL}/admin/users/${userId}`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch resident');
+    }
+
+    return response.json();
+  }
+
+  static async updateResident(userId: number, data: any) {
+    const response = await fetchWithAuth(`${API_URL}/admin/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        ...this.getHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update resident');
     }
 
     return response.json();
