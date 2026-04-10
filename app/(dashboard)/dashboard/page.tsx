@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { User, Payment, Room } from '@/app/types';
 import { UserHeader, UserBottomNav } from '@/app/components';
 import { useAuth } from '@/app/lib/useAuth';
+import { ApiClient } from '@/app/lib/api';
 
 // Custom hook for counter animation
 const useCountUp = (end: number, duration: number = 2000, start: number = 0) => {
@@ -85,30 +86,8 @@ export default function DashboardPage() {
       return;
     }
     
-    console.log('Fetching room data for room_id:', roomId);
-    
     try {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        return;
-      }
-
-      const response = await fetch(`http://127.0.0.1:8000/api/rooms/${roomId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      console.log('Room fetch response status:', response.status);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Room data received:', data);
+      const data = await ApiClient.getRoom(roomId);
       setRoom(data.room);
     } catch (err) {
       console.error('Failed to fetch room:', err);
@@ -117,24 +96,7 @@ export default function DashboardPage() {
 
   const fetchPaymentData = async (userId: number) => {
     try {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        return;
-      }
-
-      const response = await fetch('http://127.0.0.1:8000/api/payments', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await ApiClient.getPayments();
       const userPayments = data.payments.filter((p: Payment) => p.user_id === userId);
       setPayments(userPayments);
     } catch (err) {

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { User } from '@/app/types';
+import { ApiClient } from '@/app/lib/api';
+import { showSuccess, showError, showConfirm } from '@/app/lib/sweetalert';
 
 interface Payment {
   id: number;
@@ -48,24 +50,10 @@ export default function UploadPaymentProofPage() {
 
   const fetchPaymentDetail = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/payments/${paymentId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPayment(data.payment);
-      } else {
-        alert('Failed to fetch payment details');
-        router.back();
-      }
+      const data = await ApiClient.getPayment(parseInt(paymentId));
+      setPayment(data.payment);
     } catch (err) {
-      console.error('Failed to fetch payment:', err);
-      alert('Failed to fetch payment details');
+      await showError('Error', 'Failed to fetch payment details');
       router.back();
     } finally {
       setLoading(false);
@@ -77,13 +65,13 @@ export default function UploadPaymentProofPage() {
     if (file) {
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB');
+        showError('Error', 'File size must be less than 5MB');
         return;
       }
 
       // Validate file type
       if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
-        alert('Only JPG and PNG files are allowed');
+        showError('Error', 'Only JPG and PNG files are allowed');
         return;
       }
 
@@ -100,41 +88,27 @@ export default function UploadPaymentProofPage() {
 
   const handleSubmit = async () => {
     if (!selectedFile) {
-      alert('Please select a file');
+      await showError('Error', 'Please select a file');
       return;
     }
 
-    if (!confirm('Submit payment proof? This will send your proof to admin for verification.')) {
-      return;
-    }
+    const result = await showConfirm(
+      'Submit Payment Proof?',
+      'This will send your proof to admin for verification.',
+      'Submit',
+      'Cancel'
+    );
+
+    if (!result.isConfirmed) return;
 
     setUploading(true);
 
     try {
-      const token = localStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('payment_id', paymentId);
-      formData.append('bukti_bayar', selectedFile);
-
-      const response = await fetch('http://127.0.0.1:8000/api/payments/upload-bukti', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-        body: formData,
-      });
-
-      if (response.ok) {
-        alert('Bukti pembayaran berhasil diupload! Menunggu verifikasi admin.');
-        router.push('/payments');
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to upload payment proof');
-      }
-    } catch (err) {
-      console.error('Failed to upload:', err);
-      alert('Failed to upload payment proof');
+      await ApiClient.uploadBuktiBayar(parseInt(paymentId), selectedFile);
+      await showSuccess('Success!', 'Bukti pembayaran berhasil diupload! Menunggu verifikasi admin.');
+      router.push('/payments');
+    } catch (err: any) {
+      await showError('Error', err.message || 'Failed to upload payment proof');
     } finally {
       setUploading(false);
     }
