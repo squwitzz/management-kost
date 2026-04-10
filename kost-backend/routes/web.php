@@ -27,3 +27,12 @@ Route::get('/debug-storage', function() {
     if (!is_dir($dir)) return "No dir: " . $dir;
     return response()->json(array_diff(scandir($dir), ['..', '.']));
 });
+
+Route::get('/image', function() {
+    $path = request()->query('file');
+    if (!$path || preg_match('/\.\./', $path)) abort(403);
+    $file = storage_path('app/public/' . $path);
+    if (!file_exists($file)) abort(404);
+    $mimeType = \Illuminate\Support\Facades\File::mimeType($file);
+    return response()->file($file, ['Content-Type' => $mimeType]);
+});
