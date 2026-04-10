@@ -37,20 +37,20 @@ export default function RoomsPage() {
   const fetchRooms = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Fetching rooms with token:', token ? 'exists' : 'missing');
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://mykost-cendana.xyz/api';
       
-      const response = await fetch('http://127.0.0.1:8000/api/rooms', {
+      // Add cache busting parameter to force fresh data
+      const timestamp = new Date().getTime();
+      const response = await fetch(`${API_URL}/rooms?_t=${timestamp}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
         },
+        cache: 'no-store', // Disable caching
       });
-
-      console.log('Fetch rooms response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Rooms data:', data);
         setRooms(data.rooms);
       } else {
         const errorData = await response.json();
@@ -70,7 +70,9 @@ export default function RoomsPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/rooms/${roomId}`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://mykost-cendana.xyz/api';
+      
+      const response = await fetch(`${API_URL}/rooms/${roomId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -124,7 +126,15 @@ export default function RoomsPage() {
               Property <br />
               Directory.
             </h2>
-            <div className="flex gap-3">
+            <div className="flex gap-3 items-end">
+              <button
+                onClick={fetchRooms}
+                className="bg-surface-container-low hover:bg-surface-container px-4 py-3 rounded-xl transition-colors flex items-center gap-2"
+                title="Refresh data"
+              >
+                <span className="material-symbols-outlined text-xl">refresh</span>
+                <span className="font-label text-xs font-bold uppercase tracking-wider hidden md:inline">Refresh</span>
+              </button>
               <div className="bg-surface-container-low px-6 py-4 rounded-xl flex flex-col gap-1 min-w-[140px]">
                 <span className="font-label text-[10px] text-outline font-bold uppercase tracking-wider">
                   Total Rooms
