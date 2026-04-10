@@ -6,6 +6,7 @@ import { User } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
 import { useAuth } from '@/app/lib/useAuth';
+import { ApiClient } from '@/app/lib/api';
 
 interface DashboardStats {
   totalRevenue: number;
@@ -46,58 +47,42 @@ export default function AdminDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const token = localStorage.getItem('token');
-      
-      // Fetch rooms
-      const roomsResponse = await fetch('http://127.0.0.1:8000/api/rooms', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
+      // Fetch rooms and payments in parallel
+      const [roomsData, paymentsData] = await Promise.all([
+        ApiClient.getRooms(),
+        ApiClient.getAdminPayments()
+      ]);
 
-      // Fetch payments
-      const paymentsResponse = await fetch('http://127.0.0.1:8000/api/payments', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
+      const rooms = roomsData.rooms || [];
+      const payments = paymentsData.payments || [];
 
-      if (roomsResponse.ok && paymentsResponse.ok) {
-        const roomsData = await roomsResponse.json();
-        const paymentsData = await paymentsResponse.json();
+      // Calculate stats
+      const totalRooms = rooms.length;
+      const occupiedRooms = rooms.filter((r: any) => r.status === 'Terisi').length;
+      const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
-        const rooms = roomsData.rooms || [];
-        const payments = paymentsData.payments || [];
+      // Calculate total revenue from paid payments
+      const paidPayments = payments.filter((p: any) => p.status_bayar === 'Lunas');
+      const totalRevenue = paidPayments.reduce((sum: number, p: any) => sum + p.jumlah_tagihan, 0);
 
-        // Calculate stats
-        const totalRooms = rooms.length;
-        const occupiedRooms = rooms.filter((r: any) => r.status === 'Terisi').length;
-        const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+      // Count pending payments
+      const pendingPayments = payments.filter((p: any) => p.status_bayar === 'Menunggu Verifikasi').length;
 
-        // Calculate total revenue from paid payments
-        const paidPayments = payments.filter((p: any) => p.status_bayar === 'Lunas');
-        const totalRevenue = paidPayments.reduce((sum: number, p: any) => sum + p.jumlah_tagihan, 0);
+      // Get recent activities (last 5 verified payments)
+      const recentActivities = paidPayments
+        .sort((a: any, b: any) => new Date(b.tanggal_verifikasi || b.created_at).getTime() - new Date(a.tanggal_verifikasi || a.created_at).getTime())
+        .slice(0, 5)
+        .map((p: any) => ({
+          id: p.id,
+          user_name: p.user?.nama || 'Unknown',
+          room_number: p.user?.room?.nomor_kamar || '-',
+          amount: p.jumlah_tagihan,
+          time: getTimeAgo(p.tanggal_verifikasi || p.created_at),
+          status: 'Verified',
+        }));
 
-        // Count pending payments
-        const pendingPayments = payments.filter((p: any) => p.status_bayar === 'Menunggu Verifikasi').length;
-
-        // Get recent activities (last 5 verified payments)
-        const recentActivities = paidPayments
-          .sort((a: any, b: any) => new Date(b.tanggal_verifikasi || b.created_at).getTime() - new Date(a.tanggal_verifikasi || a.created_at).getTime())
-          .slice(0, 5)
-          .map((p: any) => ({
-            id: p.id,
-            user_name: p.user?.nama || 'Unknown',
-            room_number: p.user?.room?.nomor_kamar || '-',
-            amount: p.jumlah_tagihan,
-            time: getTimeAgo(p.tanggal_verifikasi || p.created_at),
-            status: 'Verified',
-          }));
-
-        setStats({
-          totalRevenue,
+      setStats({
+        totalRevenue,
           occupancyRate,
           occupiedRooms,
           totalRooms,
