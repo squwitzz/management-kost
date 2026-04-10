@@ -70,17 +70,26 @@ export class ApiClient {
         throw new Error('Backend belum dikonfigurasi dengan benar di cPanel. Silakan ikuti panduan di CPANEL_BACKEND_SETUP.md atau gunakan ngrok untuk development.');
       }
 
+      // Handle other HTTP errors
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Login gagal');
+        let errorMessage = 'Login gagal';
+        try {
+          const error = await response.json();
+          errorMessage = error.error || error.message || errorMessage;
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       return response.json();
     } catch (error) {
-      // Better error handling for network issues
+      // Network error (cannot connect to server)
       if (error instanceof TypeError && error.message.includes('fetch')) {
         throw new Error(`Tidak dapat terhubung ke server di ${API_URL}. Pastikan backend berjalan atau ganti ke ngrok di .env.local`);
       }
+      // Re-throw other errors (including our custom errors above)
       throw error;
     }
   }
