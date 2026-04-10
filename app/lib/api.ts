@@ -18,6 +18,12 @@ export const getBaseUrl = () => {
   return apiUrl.replace('/api', '');
 };
 
+// Safe image retrieval that bypasses cPanel Nginx static block
+export const getImageUrl = (path: string | undefined | null) => {
+  if (!path) return 'https://via.placeholder.com/150';
+  return `${getBaseUrl()}/image?file=${path}`;
+};
+
 const API_URL = getApiUrl();
 
 // Handle session expiration
