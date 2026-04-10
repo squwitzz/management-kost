@@ -71,6 +71,7 @@ export default function GeneratePaymentsPage() {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
         body: JSON.stringify({
           periode,
@@ -84,12 +85,14 @@ export default function GeneratePaymentsPage() {
       if (response.ok) {
         const data = await response.json();
         console.log('Preview data:', data);
-        setPreview(data.preview);
-        setDueDate(data.due_date);
+        // Handle various response shapes
+        const previewList = data.preview || data.data || data || [];
+        setPreview(Array.isArray(previewList) ? previewList : []);
+        setDueDate(data.due_date || '');
       } else {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
         console.error('Preview error:', error);
-        await showError('Error', error.error || 'Failed to preview payments');
+        await showError('Error', error.error || error.message || 'Failed to preview payments');
       }
     } catch (err: any) {
       console.error('Failed to preview:', err);
@@ -130,6 +133,7 @@ export default function GeneratePaymentsPage() {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
         body: JSON.stringify({
           periode,
@@ -144,21 +148,17 @@ export default function GeneratePaymentsPage() {
       if (response.ok) {
         const data = await response.json();
         console.log('Generate data:', data);
-        await showSuccess('Berhasil!', `Berhasil generate ${data.generated_count} tagihan!`);
+        const count = data.generated_count || data.count || preview.length;
+        await showSuccess('Berhasil!', `Berhasil generate ${count} tagihan!`);
         router.push('/admin/payments');
       } else {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
         console.error('Generate error:', error);
-        await showError('Error', error.error || 'Failed to generate payments');
+        await showError('Error', error.error || error.message || 'Failed to generate payments');
       }
     } catch (err: any) {
       console.error('Failed to generate:', err);
       await showError('Error', err.message || 'Failed to generate payments');
-    } finally {
-      setGenerating(false);
-    }
-  };
-      await showError('Error', 'Failed to generate payments');
     } finally {
       setGenerating(false);
     }
@@ -232,7 +232,7 @@ export default function GeneratePaymentsPage() {
                 <div className="text-right">
                   <p className="text-xs text-on-surface-variant">Jatuh Tempo</p>
                   <p className="font-label text-sm font-bold text-primary">
-                    {new Date(dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {dueDate ? new Date(dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
                   </p>
                 </div>
               </div>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border-left: 4px solid #2196F3;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.secondary {
+            background: #2196F3;
+        }
+        button.secondary:hover {
+            background: #0b7dda;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            border-left: 4px solid #4CAF50;
+            background: #f1f8f4;
+        }
+        .error {
+            border-left: 4px solid #f44336;
+            background: #fef1f0;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 4px solid #2196F3;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        label {
+            font-weight: bold;
+            color: #555;
+            display: block;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Backend Connection Test - cPanel</h1>
+        
+        <div class="info">
+            <strong>Backend URL:</strong> <span id="apiUrl">https://mykost-cendana.xyz/api</span><br>
+            <strong>Status:</strong> <span id="connectionStatus">Not tested yet</span>
+        </div>
+
+        <!-- Test 1: Health Check -->
+        <div class="test-section">
+            <h2>1. Health Check</h2>
+            <p>Test apakah backend bisa diakses</p>
+            <button onclick="testHealth()">Test Health Endpoint</button>
+            <div id="healthResult" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- Test 2: Login -->
+        <div class="test-section">
+            <h2>2. Login Test</h2>
+            <p>Login untuk mendapatkan token</p>
+            <label>Nomor Telepon:</label>
+            <input type="text" id="loginPhone" placeholder="081234567890" value="081234567890">
+            <label>Password:</label>
+            <input type="password" id="loginPassword" placeholder="password" value="admin123">
+            <button onclick="testLogin()">Login</button>
+            <div id="loginResult" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- Test 3: Get Rooms -->
+        <div class="test-section">
+            <h2>3. Get Rooms (Requires Login)</h2>
+            <p>Ambil data kamar - perlu login dulu</p>
+            <button onclick="testRooms()" class="secondary">Get Rooms</button>
+            <div id="roomsResult" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- Test 4: Get Rules -->
+        <div class="test-section">
+            <h2>4. Get Rules (Requires Login)</h2>
+            <p>Ambil data peraturan - perlu login dulu</p>
+            <button onclick="testRules()" class="secondary">Get Rules (User)</button>
+            <button onclick="testRulesAll()" class="secondary">Get All Rules (Admin)</button>
+            <div id="rulesResult" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- Test 5: Preview Payments -->
+        <div class="test-section">
+            <h2>5. Preview Payments (Admin Only)</h2>
+            <p>Preview tagihan sebelum generate</p>
+            <label>Periode (contoh: Januari 2026):</label>
+            <input type="text" id="periode" placeholder="Januari 2026" value="Mei 2026">
+            <button onclick="testPreviewPayments()" class="secondary">Preview Payments</button>
+            <div id="previewResult" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://mykost-cendana.xyz/api';
+        let authToken = localStorage.getItem('token') || null;
+
+        // Update status
+        function updateStatus(status, color) {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.textContent = status;
+            statusEl.style.color = color;
+        }
+
+        // Show result
+        function showResult(elementId, data, isSuccess = true) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.className = 'result ' + (isSuccess ? 'success' : 'error');
+            el.textContent = JSON.stringify(data, null, 2);
+        }
+
+        // Test 1: Health Check
+        async function testHealth() {
+            try {
+                const response = await fetch(`${API_URL}/health`, {
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                });
+                const data = await response.json();
+                showResult('healthResult', data, response.ok);
+                updateStatus(response.ok ? '✅ Connected' : '❌ Error', response.ok ? 'green' : 'red');
+            } catch (error) {
+                showResult('healthResult', { error: error.message }, false);
+                updateStatus('❌ Connection Failed', 'red');
+            }
+        }
+
+        // Test 2: Login
+        async function testLogin() {
+            const phone = document.getElementById('loginPhone').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        nomor_telepon: phone,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.token) {
+                    authToken = data.token;
+                    localStorage.setItem('token', authToken);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    showResult('loginResult', {
+                        success: true,
+                        message: 'Login berhasil! Token tersimpan.',
+                        user: data.user,
+                        token: authToken.substring(0, 50) + '...'
+                    }, true);
+                } else {
+                    showResult('loginResult', data, false);
+                }
+            } catch (error) {
+                showResult('loginResult', { error: error.message }, false);
+            }
+        }
+
+        // Test 3: Get Rooms
+        async function testRooms() {
+            if (!authToken) {
+                showResult('roomsResult', { error: 'Please login first!' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/rooms`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Accept': 'application/json',
+                        'ngrok-skip-browser-warning': 'true',
+                    }
+                });
+
+                const data = await response.json();
+                showResult('roomsResult', data, response.ok);
+            } catch (error) {
+                showResult('roomsResult', { error: error.message }, false);
+            }
+        }
+
+        // Test 4: Get Rules (User)
+        async function testRules() {
+            if (!authToken) {
+                showResult('rulesResult', { error: 'Please login first!' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/peraturan`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Accept': 'application/json',
+                        'ngrok-skip-browser-warning': 'true',
+                    }
+                });
+
+                const data = await response.json();
+                showResult('rulesResult', data, response.ok);
+            } catch (error) {
+                showResult('rulesResult', { error: error.message }, false);
+            }
+        }
+
+        // Test 4b: Get All Rules (Admin)
+        async function testRulesAll() {
+            if (!authToken) {
+                showResult('rulesResult', { error: 'Please login first!' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/peraturan/all`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Accept': 'application/json',
+                        'ngrok-skip-browser-warning': 'true',
+                    }
+                });
+
+                const data = await response.json();
+                showResult('rulesResult', data, response.ok);
+            } catch (error) {
+                showResult('rulesResult', { error: error.message }, false);
+            }
+        }
+
+        // Test 5: Preview Payments
+        async function testPreviewPayments() {
+            if (!authToken) {
+                showResult('previewResult', { error: 'Please login first!' }, false);
+                return;
+            }
+
+            const periode = document.getElementById('periode').value;
+
+            try {
+                const response = await fetch(`${API_URL}/billing/preview`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'ngrok-skip-browser-warning': 'true',
+                    },
+                    body: JSON.stringify({ periode })
+                });
+
+                const data = await response.json();
+                showResult('previewResult', data, response.ok);
+            } catch (error) {
+                showResult('previewResult', { error: error.message }, false);
+            }
+        }
+
+        // Auto-load token on page load
+        window.onload = function() {
+            if (authToken) {
+                updateStatus('✅ Token found in localStorage', 'green');
+            } else {
+                updateStatus('⚠️ No token - please login', 'orange');
+            }
+        };
+    </script>
+</body>
+</html>

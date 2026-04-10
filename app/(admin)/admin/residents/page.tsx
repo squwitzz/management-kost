@@ -42,20 +42,32 @@ export default function ResidentsPage() {
   const fetchResidents = async () => {
     try {
       console.log('Fetching residents...');
-      const data = await ApiClient.getRooms();
-      console.log('Rooms data:', data);
-      
-      // Extract all residents from rooms
-      const allResidents: User[] = [];
-      data.rooms.forEach((room: any) => {
-        if (room.users && room.users.length > 0) {
-          room.users.forEach((resident: User) => {
-            allResidents.push({ ...resident, room });
-          });
-        }
-      });
-      console.log('All residents:', allResidents);
-      setResidents(allResidents);
+      // Try dedicated residents endpoint first
+      try {
+        const data = await ApiClient.getResidents();
+        console.log('Residents data:', data);
+        // API may return { users: [...] } or { residents: [...] } or an array
+        const residentList = data.users || data.residents || data.data || data || [];
+        const list = Array.isArray(residentList) ? residentList : [];
+        console.log('All residents:', list);
+        setResidents(list);
+      } catch (directErr) {
+        console.warn('Direct residents endpoint failed, falling back to rooms:', directErr);
+        // Fallback: extract from rooms
+        const data = await ApiClient.getRooms();
+        console.log('Rooms data:', data);
+        const allResidents: User[] = [];
+        const roomList = data.rooms || data.data || data || [];
+        (Array.isArray(roomList) ? roomList : []).forEach((room: any) => {
+          if (room.users && room.users.length > 0) {
+            room.users.forEach((resident: User) => {
+              allResidents.push({ ...resident, room });
+            });
+          }
+        });
+        console.log('All residents (from rooms):', allResidents);
+        setResidents(allResidents);
+      }
     } catch (err: any) {
       console.error('Failed to fetch residents:', err);
       await showError('Error', err.message || 'Gagal memuat data penghuni');

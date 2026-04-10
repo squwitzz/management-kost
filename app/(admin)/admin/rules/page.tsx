@@ -52,7 +52,9 @@ export default function AdminRulesPage() {
       console.log('Fetching rules...');
       const data = await ApiClient.getRules();
       console.log('Rules data:', data);
-      setPeraturan(data.peraturan || []);
+      // Handle various response shapes
+      const list = data.peraturan || data.rules || data.data || data || [];
+      setPeraturan(Array.isArray(list) ? list : []);
     } catch (err: any) {
       console.error('Failed to fetch peraturan:', err);
       if (err.message?.includes('401')) {
@@ -229,7 +231,13 @@ export default function AdminRulesPage() {
 
         {/* Rules List */}
         <div className="space-y-4">
-          {peraturan.map((rule) => (
+          {peraturan.length === 0 ? (
+            <div className="py-20 text-center">
+              <span className="material-symbols-outlined text-4xl text-outline-variant mb-4 block">rule</span>
+              <p className="text-on-surface-variant text-lg">Belum ada peraturan. Klik &quot;Add Rule&quot; untuk menambahkan peraturan baru.</p>
+            </div>
+          ) : (
+            peraturan.map((rule) => (
             <div
               key={rule.id}
               className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/10"
@@ -288,7 +296,8 @@ export default function AdminRulesPage() {
                 </div>
               </div>
             </div>
-          ))}
+          ))
+          )}
         </div>
       </main>
 

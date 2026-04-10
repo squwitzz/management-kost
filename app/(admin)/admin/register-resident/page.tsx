@@ -56,8 +56,13 @@ export default function RegisterResidentPage() {
       console.log('Fetching rooms for registration...');
       const data = await ApiClient.getRooms();
       console.log('Rooms data:', data);
-      // Filter only available rooms
-      const availableRooms = data.rooms.filter((room: Room) => room.status === 'Kosong');
+      // Handle various response shapes
+      const roomList = data.rooms || data.data || data || [];
+      const list: Room[] = Array.isArray(roomList) ? roomList : [];
+      // Filter only available rooms (case-insensitive)
+      const availableRooms = list.filter((room: Room) =>
+        (room.status || '').toLowerCase() === 'kosong'
+      );
       console.log('Available rooms:', availableRooms);
       setRooms(availableRooms);
     } catch (err: any) {

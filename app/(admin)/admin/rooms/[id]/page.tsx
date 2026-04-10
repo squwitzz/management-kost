@@ -44,7 +44,14 @@ export default function RoomDetailPage() {
       console.log('Fetching room detail for ID:', roomId);
       const data = await ApiClient.getRoom(parseInt(roomId));
       console.log('Room data:', data);
-      setRoom(data.room);
+      // Handle various API response shapes
+      const roomData = data.room || data.data || data;
+      if (roomData && roomData.id) {
+        setRoom(roomData);
+      } else {
+        console.error('Room not found in response:', data);
+        await showError('Error', 'Room tidak ditemukan');
+      }
     } catch (err: any) {
       console.error('Failed to fetch room:', err);
       await showError('Error', err.message || 'Failed to load room details');
