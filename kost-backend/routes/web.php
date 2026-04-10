@@ -15,7 +15,7 @@ Route::get('/storage/{path}', function ($path) {
     $file = storage_path('app/public/' . $path);
     
     if (!file_exists($file)) {
-        abort(404);
+        return "Not found physical file at: " . $file;
     }
     
     $mimeType = \Illuminate\Support\Facades\File::mimeType($file);
