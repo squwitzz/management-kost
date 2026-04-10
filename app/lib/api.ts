@@ -1,8 +1,14 @@
 // Get API URL from environment variable
 const getApiUrl = () => {
-  if (typeof window === 'undefined') {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+  // Force production URL for now
+  if (typeof window !== 'undefined') {
+    // Check if we're on Vercel (production)
+    if (window.location.hostname.includes('vercel.app')) {
+      return 'http://mykost-cendana.xyz/api';
+    }
   }
+  
+  // Use environment variable or fallback
   return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 };
 
