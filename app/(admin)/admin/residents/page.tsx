@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { User, Payment } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
-import { ApiClient } from '@/app/lib/api';
+import { ApiClient, getBaseUrl } from '@/app/lib/api';
 import { showSuccess, showError, showDeleteConfirm } from '@/app/lib/sweetalert';
 
 export default function ResidentsPage() {
@@ -41,29 +41,20 @@ export default function ResidentsPage() {
 
   const fetchResidents = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/rooms', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
+      const data = await ApiClient.getRooms();
+      // Extract all residents from rooms
+      const allResidents: User[] = [];
+      data.rooms.forEach((room: any) => {
+        if (room.users && room.users.length > 0) {
+          room.users.forEach((resident: User) => {
+            allResidents.push({ ...resident, room });
+          });
+        }
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Extract all residents from rooms
-        const allResidents: User[] = [];
-        data.rooms.forEach((room: any) => {
-          if (room.users && room.users.length > 0) {
-            room.users.forEach((resident: User) => {
-              allResidents.push({ ...resident, room });
-            });
-          }
-        });
-        setResidents(allResidents);
-      }
+      setResidents(allResidents);
     } catch (err) {
       console.error('Failed to fetch residents:', err);
+      await showError('Error', 'Gagal memuat data penghuni');
     } finally {
       setLoading(false);
     }
@@ -71,18 +62,8 @@ export default function ResidentsPage() {
 
   const fetchPayments = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/payments', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPayments(data.payments || []);
-      }
+      const data = await ApiClient.getAdminPayments();
+      setPayments(data.payments || []);
     } catch (err) {
       console.error('Failed to fetch payments:', err);
     }
@@ -199,7 +180,7 @@ export default function ResidentsPage() {
                         className="w-12 h-12 rounded-full object-cover"
                         src={
                           resident.foto_penghuni
-                            ? `http://127.0.0.1:8000/storage/${resident.foto_penghuni}`
+                            ? `${getBaseUrl()}/storage/${resident.foto_penghuni}`
                             : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUe_fqSs_mEXImBn1Td_tce-oeWCz2RBOuzeAboY3q2ZSX3x1uhrrYkxyULXIOX-K8gQ7Gwf_Fewm-Dv05BdoAqlylRvBeuzeOje2aH2__JR3wjlyUbdLvM57eBZW52YNy7NHprIBSPZdV0nAq9pgCb4ALVjfkw_NqusJdPlOsrujJK-1utnB_yWit4dwKrwmjHjTlCZQAjqxk3wcTGByTJZPI6r1j8XXvOCoUDWUFX7jxjK0OPESkDug1XkKIWMg9cYssyxUnL40'
                         }
                       />
