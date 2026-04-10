@@ -126,15 +126,7 @@ export default function RoomsPage() {
               Property <br />
               Directory.
             </h2>
-            <div className="flex gap-3 items-end">
-              <button
-                onClick={fetchRooms}
-                className="bg-surface-container-low hover:bg-surface-container px-4 py-3 rounded-xl transition-colors flex items-center gap-2"
-                title="Refresh data"
-              >
-                <span className="material-symbols-outlined text-xl">refresh</span>
-                <span className="font-label text-xs font-bold uppercase tracking-wider hidden md:inline">Refresh</span>
-              </button>
+            <div className="flex gap-3">
               <div className="bg-surface-container-low px-6 py-4 rounded-xl flex flex-col gap-1 min-w-[140px]">
                 <span className="font-label text-[10px] text-outline font-bold uppercase tracking-wider">
                   Total Rooms
