@@ -22,6 +22,10 @@ class BillingSetting extends Model
     ];
 
     protected $casts = [
+        'billing_cycle_days' => 'integer',
+        'due_date_day' => 'integer',
+        'grace_period_days' => 'integer',
+        'auto_generate_day' => 'integer',
         'auto_generate' => 'boolean',
         'enable_late_fee' => 'boolean',
         'late_fee_percentage' => 'decimal:2',

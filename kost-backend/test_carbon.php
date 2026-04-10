@@ -1,0 +1,1 @@
+<?php require 'vendor/autoload.php'; use Carbon\Carbon; $periode = 'Mei 2026'; $months = ['Januari' => 1, 'Mei' => 5]; $parts = explode(' ', $periode); $month = $months[$parts[0]] ?? 1; $year = $parts[1] ?? date('Y'); $date = Carbon::create($year, $month, 1); $dueDate = $date->addMonth()->day(5); echo $dueDate->format('Y-m-d');

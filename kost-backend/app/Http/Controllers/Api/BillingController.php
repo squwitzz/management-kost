@@ -522,7 +522,7 @@ class BillingController extends Controller
         }
 
         // Add one month and set due date day
-        $dueDate = $date->addMonth()->day($dueDateDay);
+        $dueDate = $date->addMonth()->day((int) $dueDateDay);
 
         return $dueDate;
     }
