@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { User } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
+import { useAuth } from '@/app/lib/useAuth';
 
 interface DashboardStats {
   totalRevenue: number;
@@ -24,6 +25,7 @@ interface DashboardStats {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading, user: authUser } = useAuth('Admin');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
@@ -36,26 +38,11 @@ export default function AdminDashboard() {
   });
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-
-    if (!token || !userData) {
-      router.push('/login');
-      return;
+    if (!authLoading && isAuthenticated && authUser) {
+      setUser(authUser);
+      fetchDashboardData();
     }
-
-    const parsedUser = JSON.parse(userData);
-    
-    if (parsedUser.role !== 'Admin') {
-      router.push('/dashboard');
-      return;
-    }
-
-    setUser(parsedUser);
-    fetchDashboardData();
-  }, [router]);
+  }, [authLoading, isAuthenticated, authUser]);
 
   const fetchDashboardData = async () => {
     try {
@@ -139,7 +126,7 @@ export default function AdminDashboard() {
     return `${diffDays} days ago`;
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Loading...</p>

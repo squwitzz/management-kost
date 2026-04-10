@@ -8,6 +8,30 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
+// Handle session expiration
+const handleUnauthorized = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    // Remove cookie
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    window.location.href = '/login';
+  }
+};
+
+// Fetch wrapper with auth handling
+const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+  const response = await fetch(url, options);
+  
+  // Check for 401 Unauthorized
+  if (response.status === 401) {
+    handleUnauthorized();
+    throw new Error('Session expired. Please login again.');
+  }
+  
+  return response;
+};
+
 export class ApiClient {
   private static getHeaders(includeAuth: boolean = true): HeadersInit {
     const headers: HeadersInit = {
@@ -53,7 +77,7 @@ export class ApiClient {
   }
 
   static async getMe() {
-    const response = await fetch(`${API_URL}/me`, {
+    const response = await fetchWithAuth(`${API_URL}/me`, {
       headers: this.getHeaders(),
     });
 
@@ -65,7 +89,7 @@ export class ApiClient {
   }
 
   static async logout() {
-    const response = await fetch(`${API_URL}/logout`, {
+    const response = await fetchWithAuth(`${API_URL}/logout`, {
       method: 'POST',
       headers: this.getHeaders(),
     });
@@ -74,7 +98,7 @@ export class ApiClient {
   }
 
   static async getPayments() {
-    const response = await fetch(`${API_URL}/payments`, {
+    const response = await fetchWithAuth(`${API_URL}/payments`, {
       headers: this.getHeaders(),
     });
 
@@ -91,7 +115,7 @@ export class ApiClient {
     formData.append('bukti_bayar', file);
 
     const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/payments/upload-bukti`, {
+    const response = await fetchWithAuth(`${API_URL}/payments/upload-bukti`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -110,7 +134,7 @@ export class ApiClient {
   }
 
   static async getFoodItems() {
-    const response = await fetch(`${API_URL}/food-items`, {
+    const response = await fetchWithAuth(`${API_URL}/food-items`, {
       headers: this.getHeaders(),
     });
 
@@ -122,7 +146,7 @@ export class ApiClient {
   }
 
   static async createFoodOrder(foodId: number, jumlah: number, catatan?: string) {
-    const response = await fetch(`${API_URL}/food-orders`, {
+    const response = await fetchWithAuth(`${API_URL}/food-orders`, {
       method: 'POST',
       headers: {
         ...this.getHeaders(),
@@ -140,7 +164,7 @@ export class ApiClient {
   }
 
   static async getFoodOrders() {
-    const response = await fetch(`${API_URL}/food-orders`, {
+    const response = await fetchWithAuth(`${API_URL}/food-orders`, {
       headers: this.getHeaders(),
     });
 
@@ -152,7 +176,7 @@ export class ApiClient {
   }
 
   static async getNotifications() {
-    const response = await fetch(`${API_URL}/notifications`, {
+    const response = await fetchWithAuth(`${API_URL}/notifications`, {
       headers: this.getHeaders(),
     });
 
@@ -164,7 +188,7 @@ export class ApiClient {
   }
 
   static async getUnreadCount() {
-    const response = await fetch(`${API_URL}/notifications/unread-count`, {
+    const response = await fetchWithAuth(`${API_URL}/notifications/unread-count`, {
       headers: this.getHeaders(),
     });
 
@@ -176,10 +200,46 @@ export class ApiClient {
   }
 
   static async markNotificationAsRead(id: number) {
-    const response = await fetch(`${API_URL}/notifications/${id}/read`, {
+    const response = await fetchWithAuth(`${API_URL}/notifications/${id}/read`, {
       method: 'PUT',
       headers: this.getHeaders(),
     });
+
+    return response.json();
+  }
+
+  static async updateProfile(data: { nama?: string; email?: string; nomor_telepon?: string }) {
+    const response = await fetchWithAuth(`${API_URL}/profile/update`, {
+      method: 'POST',
+      headers: {
+        ...this.getHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update profile');
+    }
+
+    return response.json();
+  }
+
+  static async changePassword(data: { current_password: string; new_password: string; new_password_confirmation: string }) {
+    const response = await fetchWithAuth(`${API_URL}/change-password`, {
+      method: 'POST',
+      headers: {
+        ...this.getHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to change password');
+    }
 
     return response.json();
   }

@@ -228,6 +228,8 @@ export default function AdminHeader({
     if (typeof window === 'undefined') return;
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    // Remove cookie
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
     router.push('/login');
   };
 
@@ -244,7 +246,7 @@ export default function AdminHeader({
             </button>
           ) : (
             <button className="text-[#4C4E50] active:scale-95 duration-150 transition-opacity hover:opacity-80">
-              <span className="material-symbols-outlined">menu</span>
+             
             </button>
           )}
           <h1 className="font-headline font-black text-[#4C4E50] text-lg md:text-xl tracking-tighter">
@@ -284,6 +286,18 @@ export default function AdminHeader({
                 className="text-[#4C4E50] font-label text-sm font-medium hover:opacity-80 transition-opacity"
               >
                 Requests
+              </button>
+              <button
+                onClick={() => router.push('/admin/rules')}
+                className="text-[#4C4E50] font-label text-sm font-medium hover:opacity-80 transition-opacity"
+              >
+                Rules
+              </button>
+              <button
+                onClick={() => router.push('/admin/profile')}
+                className="text-[#4C4E50] font-label text-sm font-medium hover:opacity-80 transition-opacity"
+              >
+                Profile
               </button>
               <button
                 onClick={handleLogout}

@@ -225,6 +225,8 @@ export default function UserHeader({
     if (typeof window === 'undefined') return;
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    // Remove cookie
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
     router.push('/login');
   };
 
@@ -242,7 +244,7 @@ export default function UserHeader({
           ) : (
             <>
               <button className="md:hidden text-[#4C4E50] active:scale-95 duration-150 transition-opacity hover:opacity-80">
-                <span className="material-symbols-outlined text-xl">menu</span>
+               
               </button>
               
             </>
@@ -274,22 +276,16 @@ export default function UserHeader({
                 Requests
               </button>
               <button
-                onClick={() => {}}
+                onClick={() => router.push('/rules')}
                 className="text-[#4C4E50] font-label text-sm font-medium hover:opacity-80 transition-opacity"
               >
-                Food
+                Rules
               </button>
               <button
                 onClick={() => router.push('/profile')}
                 className="text-[#4C4E50] font-label text-sm font-medium hover:opacity-80 transition-opacity"
               >
                 Profile
-              </button>
-              <button
-                onClick={handleLogout}
-                className="text-[#4C4E50] font-label text-sm font-medium hover:opacity-80 transition-opacity"
-              >
-                Logout
               </button>
             </nav>
           )}
@@ -383,6 +379,18 @@ export default function UserHeader({
                 </div>
               )}
             </div>
+
+            {/* Mobile Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="md:hidden p-1.5 rounded-full hover:bg-[#F2F4F6] dark:hover:bg-[#2E3133] transition-colors duration-300 scale-95 active:opacity-80"
+              title="Logout"
+            >
+              <span className="material-symbols-outlined text-[#4C4E50] dark:text-[#E2E2E6] text-xl">
+                logout
+              </span>
+            </button>
+
             {/* Desktop Only - Logout and Profile */}
             <button
               onClick={handleLogout}

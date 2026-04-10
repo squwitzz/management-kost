@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Payment, Room } from '@/app/types';
 import { UserHeader, UserBottomNav } from '@/app/components';
+import { useAuth } from '@/app/lib/useAuth';
 
 // Custom hook for counter animation
 const useCountUp = (end: number, duration: number = 2000, start: number = 0) => {
@@ -48,11 +49,11 @@ const useCountUp = (end: number, duration: number = 2000, start: number = 0) => 
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading, user: authUser } = useAuth('Penghuni');
   const [user, setUser] = useState<User | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   // Calculate amounts first (before any conditional returns)
   const latestPayment = payments.length > 0 ? payments[0] : null;
@@ -66,27 +67,17 @@ export default function DashboardPage() {
   const animatedAmount = useCountUp(displayAmount, 2000);
 
   useEffect(() => {
-    // Check if user is logged in - only run on client side
-    if (typeof window === 'undefined') return;
-
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-
-    if (!token || !userData) {
-      router.push('/login');
-      return;
+    if (!authLoading && isAuthenticated && authUser) {
+      setUser(authUser);
+      setLoading(false);
+      
+      // Fetch data in parallel without blocking UI
+      Promise.all([
+        fetchRoomData(authUser.room_id),
+        fetchPaymentData(authUser.id)
+      ]);
     }
-
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
-    setLoading(false);
-    
-    // Fetch data in parallel without blocking UI
-    Promise.all([
-      fetchRoomData(parsedUser.room_id),
-      fetchPaymentData(parsedUser.id)
-    ]);
-  }, [router]);
+  }, [authLoading, isAuthenticated, authUser]);
 
   const fetchRoomData = async (roomId: number | undefined) => {
     if (!roomId) {
@@ -100,7 +91,6 @@ export default function DashboardPage() {
       const token = localStorage.getItem('token');
       
       if (!token) {
-        setError('No authentication token found');
         return;
       }
 
@@ -122,7 +112,6 @@ export default function DashboardPage() {
       setRoom(data.room);
     } catch (err) {
       console.error('Failed to fetch room:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch room data');
     }
   };
 
@@ -131,7 +120,6 @@ export default function DashboardPage() {
       const token = localStorage.getItem('token');
       
       if (!token) {
-        setError('No authentication token found');
         return;
       }
 
@@ -151,11 +139,10 @@ export default function DashboardPage() {
       setPayments(userPayments);
     } catch (err) {
       console.error('Failed to fetch payments:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch payment data');
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Loading...</p>
@@ -279,6 +266,24 @@ export default function DashboardPage() {
                 <div>
                   <h5 className="font-bold text-sm md:text-lg text-primary">View History</h5>
                   <p className="text-[10px] md:text-xs text-on-surface-variant font-label">Previous logs &amp; bills</p>
+                </div>
+              </div>
+              <span className="material-symbols-outlined text-outline opacity-0 group-hover:opacity-100 transition-opacity text-lg md:text-xl">
+                arrow_forward_ios
+              </span>
+            </div>
+
+            <div 
+              onClick={() => router.push('/rules')}
+              className="group bg-surface-container-low p-4 md:p-8 rounded-xl flex items-center justify-between hover:bg-surface-container-high transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-3 md:gap-6">
+                <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-white flex items-center justify-center text-secondary shadow-sm group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-2xl md:text-3xl">rule</span>
+                </div>
+                <div>
+                  <h5 className="font-bold text-sm md:text-lg text-primary">Peraturan Kost</h5>
+                  <p className="text-[10px] md:text-xs text-on-surface-variant font-label">View rules &amp; regulations</p>
                 </div>
               </div>
               <span className="material-symbols-outlined text-outline opacity-0 group-hover:opacity-100 transition-opacity text-lg md:text-xl">

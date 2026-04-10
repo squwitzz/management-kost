@@ -4,32 +4,28 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserHeader, UserBottomNav } from '@/app/components';
 import { User, MaintenanceRequest } from '@/app/types';
+import { useAuth } from '@/app/lib/useAuth';
 
 export default function RequestsPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading, user: authUser } = useAuth('Penghuni');
   const [user, setUser] = useState<User | null>(null);
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
+    if (!authLoading && isAuthenticated && authUser) {
+      setUser(authUser);
+      setLoading(false);
+      fetchRequests();
     }
-    setLoading(false);
-    
-    // Fetch requests without blocking initial render
-    fetchRequests();
-  }, []);
+  }, [authLoading, isAuthenticated, authUser]);
 
   const fetchRequests = async () => {
     try {
-      setError(null);
       const token = localStorage.getItem('token');
       
       if (!token) {
-        setError('No authentication token found');
         return;
       }
 
@@ -48,7 +44,6 @@ export default function RequestsPage() {
       setRequests(data.requests || []);
     } catch (err) {
       console.error('Failed to fetch requests:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch requests');
     }
   };
 
@@ -104,6 +99,14 @@ export default function RequestsPage() {
   const newRequests = requests.filter((r) => r.status === 'New');
   const inProgressRequests = requests.filter((r) => r.status === 'In Progress');
   const resolvedRequests = requests.filter((r) => r.status === 'Resolved');
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-surface pb-24 md:pb-8">
