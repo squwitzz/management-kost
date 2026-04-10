@@ -65,6 +65,11 @@ export class ApiClient {
         body: JSON.stringify({ nomor_telepon, password }),
       });
 
+      // Handle 404 - backend not properly configured
+      if (response.status === 404) {
+        throw new Error('Backend belum dikonfigurasi dengan benar di cPanel. Silakan ikuti panduan di CPANEL_BACKEND_SETUP.md atau gunakan ngrok untuk development.');
+      }
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Login gagal');
@@ -74,7 +79,7 @@ export class ApiClient {
     } catch (error) {
       // Better error handling for network issues
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error('Tidak dapat terhubung ke server. Pastikan backend berjalan di http://127.0.0.1:8000');
+        throw new Error(`Tidak dapat terhubung ke server di ${API_URL}. Pastikan backend berjalan atau ganti ke ngrok di .env.local`);
       }
       throw error;
     }
