@@ -37,7 +37,15 @@ export default function RoomsPage() {
   const fetchRooms = async () => {
     try {
       const token = localStorage.getItem('token');
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://mykost-cendana.xyz/api';
+      
+      // Get API URL - same logic as api.ts
+      let API_URL = 'https://mykost-cendana.xyz/api';
+      if (typeof window !== 'undefined' && !window.location.hostname.includes('vercel.app')) {
+        // If not on Vercel, use env variable or localhost
+        API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+      }
+      
+      console.log('Fetching rooms from:', API_URL);
       
       // Add cache busting parameter to force fresh data
       const timestamp = new Date().getTime();
@@ -49,8 +57,11 @@ export default function RoomsPage() {
         cache: 'no-store', // Disable caching
       });
 
+      console.log('Response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('Rooms data:', data);
         setRooms(data.rooms);
       } else {
         const errorData = await response.json();
@@ -70,7 +81,12 @@ export default function RoomsPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://mykost-cendana.xyz/api';
+      
+      // Get API URL - same logic as api.ts
+      let API_URL = 'https://mykost-cendana.xyz/api';
+      if (typeof window !== 'undefined' && !window.location.hostname.includes('vercel.app')) {
+        API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+      }
       
       const response = await fetch(`${API_URL}/rooms/${roomId}`, {
         method: 'DELETE',
