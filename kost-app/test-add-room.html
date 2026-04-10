@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Add Room</title>
+</head>
+<body>
+    <h1>Test Add Room API</h1>
+    
+    <div>
+        <h2>1. Login First</h2>
+        <button onclick="testLogin()">Login as Admin</button>
+        <div id="loginResult"></div>
+    </div>
+    
+    <div>
+        <h2>2. Add Room</h2>
+        <input type="text" id="roomNumber" placeholder="Room Number" value="201">
+        <input type="number" id="roomRate" placeholder="Base Rate" value="1500000">
+        <button onclick="testAddRoom()">Add Room</button>
+        <div id="addRoomResult"></div>
+    </div>
+    
+    <div>
+        <h2>3. Get Rooms</h2>
+        <button onclick="testGetRooms()">Get All Rooms</button>
+        <div id="getRoomsResult"></div>
+    </div>
+
+    <script>
+        let token = localStorage.getItem('token');
+        
+        async function testLogin() {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nomor_telepon: '081234567890',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Login response:', data);
+                
+                if (response.ok) {
+                    token = data.access_token;
+                    localStorage.setItem('token', token);
+                    document.getElementById('loginResult').innerHTML = 
+                        '<pre style="color: green">Login Success!\nToken: ' + token.substring(0, 50) + '...</pre>';
+                } else {
+                    document.getElementById('loginResult').innerHTML = 
+                        '<pre style="color: red">Login Failed: ' + JSON.stringify(data, null, 2) + '</pre>';
+                }
+            } catch (err) {
+                console.error('Login error:', err);
+                document.getElementById('loginResult').innerHTML = 
+                    '<pre style="color: red">Error: ' + err.message + '</pre>';
+            }
+        }
+        
+        async function testAddRoom() {
+            const roomNumber = document.getElementById('roomNumber').value;
+            const roomRate = document.getElementById('roomRate').value;
+            
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+            
+            try {
+                console.log('Sending request with token:', token.substring(0, 50) + '...');
+                
+                const response = await fetch('http://127.0.0.1:8000/api/rooms', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nomor_kamar: roomNumber,
+                        tarif_dasar: parseInt(roomRate),
+                        status: 'Kosong'
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Add room response:', response.status, data);
+                
+                if (response.ok) {
+                    document.getElementById('addRoomResult').innerHTML = 
+                        '<pre style="color: green">Success!\n' + JSON.stringify(data, null, 2) + '</pre>';
+                } else {
+                    document.getElementById('addRoomResult').innerHTML = 
+                        '<pre style="color: red">Failed (' + response.status + '):\n' + JSON.stringify(data, null, 2) + '</pre>';
+                }
+            } catch (err) {
+                console.error('Add room error:', err);
+                document.getElementById('addRoomResult').innerHTML = 
+                    '<pre style="color: red">Error: ' + err.message + '</pre>';
+            }
+        }
+        
+        async function testGetRooms() {
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/rooms', {
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                console.log('Get rooms response:', data);
+                
+                if (response.ok) {
+                    document.getElementById('getRoomsResult').innerHTML = 
+                        '<pre style="color: green">' + JSON.stringify(data, null, 2) + '</pre>';
+                } else {
+                    document.getElementById('getRoomsResult').innerHTML = 
+                        '<pre style="color: red">Failed: ' + JSON.stringify(data, null, 2) + '</pre>';
+                }
+            } catch (err) {
+                console.error('Get rooms error:', err);
+                document.getElementById('getRoomsResult').innerHTML = 
+                    '<pre style="color: red">Error: ' + err.message + '</pre>';
+            }
+        }
+        
+        // Load token on page load
+        if (token) {
+            console.log('Token found in localStorage:', token.substring(0, 50) + '...');
+        }
+    </script>
+</body>
+</html>

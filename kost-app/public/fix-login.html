@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Login - Clear Service Worker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 32px;
+        }
+        .status {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .progress {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        button {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        .steps {
+            text-align: left;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .steps li {
+            margin: 10px 0;
+            padding-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🔧</div>
+        <h1>Fix Login Error</h1>
+        
+        <div id="status" class="status loading">
+            <strong>⏳ Clearing service worker...</strong><br>
+            Please wait while we fix the login issue.
+        </div>
+
+        <div class="progress">
+            <div id="progressBar" class="progress-bar"></div>
+        </div>
+
+        <div id="actions" style="display: none;">
+            <button class="btn-primary" onclick="goToLogin()">
+                ✅ Go to Login Page
+            </button>
+        </div>
+
+        <div class="steps">
+            <strong>What we're doing:</strong>
+            <ol>
+                <li>Unregistering all service workers</li>
+                <li>Clearing all caches</li>
+                <li>Preparing fresh environment</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        let progress = 0;
+        const progressBar = document.getElementById('progressBar');
+        const statusDiv = document.getElementById('status');
+        const actionsDiv = document.getElementById('actions');
+
+        function updateProgress(percent) {
+            progress = percent;
+            progressBar.style.width = percent + '%';
+        }
+
+        async function fixLogin() {
+            try {
+                // Step 1: Unregister service workers
+                updateProgress(20);
+                statusDiv.innerHTML = '<strong>⏳ Step 1/3:</strong> Unregistering service workers...';
+                
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let registration of registrations) {
+                    await registration.unregister();
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                updateProgress(50);
+
+                // Step 2: Clear caches
+                statusDiv.innerHTML = '<strong>⏳ Step 2/3:</strong> Clearing caches...';
+                
+                const cacheNames = await caches.keys();
+                for (let cacheName of cacheNames) {
+                    await caches.delete(cacheName);
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                updateProgress(80);
+
+                // Step 3: Clear localStorage (optional)
+                statusDiv.innerHTML = '<strong>⏳ Step 3/3:</strong> Finalizing...';
+                
+                // Don't clear localStorage to keep user data
+                // localStorage.clear();
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                updateProgress(100);
+
+                // Success!
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `
+                    <strong>✅ Success!</strong><br><br>
+                    Service worker cleared: ${registrations.length} worker(s)<br>
+                    Caches cleared: ${cacheNames.length} cache(s)<br><br>
+                    <strong>You can now login without errors!</strong>
+                `;
+                
+                actionsDiv.style.display = 'block';
+
+            } catch (error) {
+                updateProgress(100);
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `
+                    <strong>❌ Error:</strong><br>
+                    ${error.message}<br><br>
+                    Please try clearing manually via DevTools (F12 → Application → Clear storage)
+                `;
+            }
+        }
+
+        function goToLogin() {
+            window.location.href = '/login';
+        }
+
+        // Auto-start on load
+        window.addEventListener('load', () => {
+            if (!('serviceWorker' in navigator)) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = '❌ Service Workers not supported in this browser.';
+                updateProgress(100);
+                actionsDiv.style.display = 'block';
+            } else {
+                fixLogin();
+            }
+        });
+    </script>
+</body>
+</html>
