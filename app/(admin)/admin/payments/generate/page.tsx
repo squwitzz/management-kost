@@ -62,6 +62,7 @@ export default function GeneratePaymentsPage() {
     }
 
     try {
+      console.log('Previewing payments for periode:', periode);
       const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/billing/preview`, {
@@ -78,17 +79,21 @@ export default function GeneratePaymentsPage() {
         credentials: 'include' as RequestCredentials,
       });
 
+      console.log('Preview response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('Preview data:', data);
         setPreview(data.preview);
         setDueDate(data.due_date);
       } else {
         const error = await response.json();
+        console.error('Preview error:', error);
         await showError('Error', error.error || 'Failed to preview payments');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to preview:', err);
-      await showError('Error', 'Failed to preview payments');
+      await showError('Error', err.message || 'Failed to preview payments');
     }
   };
 
@@ -116,6 +121,7 @@ export default function GeneratePaymentsPage() {
     setGenerating(true);
 
     try {
+      console.log('Generating payments for periode:', periode, 'due_date:', dueDate);
       const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/billing/generate`, {
@@ -133,16 +139,25 @@ export default function GeneratePaymentsPage() {
         credentials: 'include' as RequestCredentials,
       });
 
+      console.log('Generate response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('Generate data:', data);
         await showSuccess('Berhasil!', `Berhasil generate ${data.generated_count} tagihan!`);
         router.push('/admin/payments');
       } else {
         const error = await response.json();
+        console.error('Generate error:', error);
         await showError('Error', error.error || 'Failed to generate payments');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to generate:', err);
+      await showError('Error', err.message || 'Failed to generate payments');
+    } finally {
+      setGenerating(false);
+    }
+  };
       await showError('Error', 'Failed to generate payments');
     } finally {
       setGenerating(false);

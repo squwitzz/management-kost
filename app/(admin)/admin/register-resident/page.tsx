@@ -53,12 +53,16 @@ export default function RegisterResidentPage() {
 
   const fetchRooms = async () => {
     try {
+      console.log('Fetching rooms for registration...');
       const data = await ApiClient.getRooms();
+      console.log('Rooms data:', data);
       // Filter only available rooms
       const availableRooms = data.rooms.filter((room: Room) => room.status === 'Kosong');
+      console.log('Available rooms:', availableRooms);
       setRooms(availableRooms);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch rooms:', err);
+      setError(err.message || 'Failed to load rooms');
     }
   };
 

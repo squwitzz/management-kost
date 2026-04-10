@@ -41,10 +41,13 @@ export default function RoomDetailPage() {
 
   const fetchRoomDetail = async () => {
     try {
+      console.log('Fetching room detail for ID:', roomId);
       const data = await ApiClient.getRoom(parseInt(roomId));
+      console.log('Room data:', data);
       setRoom(data.room);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch room:', err);
+      await showError('Error', err.message || 'Failed to load room details');
     } finally {
       setLoading(false);
     }

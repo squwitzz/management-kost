@@ -41,7 +41,10 @@ export default function ResidentsPage() {
 
   const fetchResidents = async () => {
     try {
+      console.log('Fetching residents...');
       const data = await ApiClient.getRooms();
+      console.log('Rooms data:', data);
+      
       // Extract all residents from rooms
       const allResidents: User[] = [];
       data.rooms.forEach((room: any) => {
@@ -51,10 +54,11 @@ export default function ResidentsPage() {
           });
         }
       });
+      console.log('All residents:', allResidents);
       setResidents(allResidents);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch residents:', err);
-      await showError('Error', 'Gagal memuat data penghuni');
+      await showError('Error', err.message || 'Gagal memuat data penghuni');
     } finally {
       setLoading(false);
     }

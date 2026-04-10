@@ -49,7 +49,9 @@ export default function AdminRulesPage() {
 
   const fetchPeraturan = async () => {
     try {
+      console.log('Fetching rules...');
       const data = await ApiClient.getRules();
+      console.log('Rules data:', data);
       setPeraturan(data.peraturan || []);
     } catch (err: any) {
       console.error('Failed to fetch peraturan:', err);
@@ -58,6 +60,8 @@ export default function AdminRulesPage() {
         localStorage.removeItem('user');
         document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         window.location.href = '/login';
+      } else {
+        setMessage({ type: 'error', text: err.message || 'Failed to load rules' });
       }
     } finally {
       setLoading(false);

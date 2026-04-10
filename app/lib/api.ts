@@ -521,14 +521,14 @@ export class ApiClient {
     return response.json();
   }
 
-  static async updateMaintenanceRequestStatus(requestId: number, status: string) {
-    const response = await fetchWithAuth(`${API_URL}/maintenance-requests/${requestId}/status`, {
+  static async updateMaintenanceRequestStatus(requestId: number, updates: any) {
+    const response = await fetchWithAuth(`${API_URL}/maintenance-requests/${requestId}`, {
       method: 'PUT',
       headers: {
         ...this.getHeaders(),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(updates),
     });
 
     if (!response.ok) {
@@ -601,7 +601,7 @@ export class ApiClient {
 
   // Admin Payments
   static async getAdminPayments() {
-    const response = await fetchWithAuth(`${API_URL}/admin/payments`, {
+    const response = await fetchWithAuth(`${API_URL}/payments`, {
       headers: this.getHeaders(),
     });
 
