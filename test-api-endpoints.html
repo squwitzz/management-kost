@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Endpoint Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .config {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .config label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .config input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s;
+        }
+        
+        .config input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .endpoints {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .endpoint {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s;
+        }
+        
+        .endpoint:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+        
+        .endpoint-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .endpoint-url {
+            font-size: 12px;
+            color: #666;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+        
+        .endpoint button {
+            width: 100%;
+            padding: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .endpoint button:hover {
+            background: #5568d3;
+        }
+        
+        .endpoint button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .results {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .results:empty::before {
+            content: 'Test results will appear here...';
+            color: #666;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .action-buttons button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-test-all {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-test-all:hover {
+            background: #218838;
+        }
+        
+        .btn-clear {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-clear:hover {
+            background: #c82333;
+        }
+        
+        .summary {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .summary.show {
+            display: block;
+        }
+        
+        .summary-item {
+            display: inline-block;
+            margin-right: 20px;
+            font-weight: 600;
+        }
+        
+        .summary-item.success {
+            color: #28a745;
+        }
+        
+        .summary-item.error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 API Endpoint Tester</h1>
+        <p class="subtitle">Test all backend endpoints to diagnose issues</p>
+        
+        <div class="config">
+            <label>Backend URL:</label>
+            <input type="text" id="apiUrl" value="https://mykost-cendana.xyz/api" placeholder="https://mykost-cendana.xyz/api">
+            
+            <label>Auth Token (from localStorage):</label>
+            <input type="text" id="token" placeholder="Paste your token here or it will be auto-loaded">
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn-test-all" onclick="testAllEndpoints()">🚀 Test All Endpoints</button>
+            <button class="btn-clear" onclick="clearResults()">🗑️ Clear Results</button>
+        </div>
+        
+        <div class="summary" id="summary"></div>
+        
+        <h3 style="margin-bottom: 15px; color: #333;">Endpoints:</h3>
+        <div class="endpoints" id="endpoints"></div>
+        
+        <h3 style="margin: 30px 0 15px; color: #333;">Results:</h3>
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        const endpoints = [
+            { name: 'Get Rooms', method: 'GET', path: '/rooms', auth: true },
+            { name: 'Get Room Detail', method: 'GET', path: '/rooms/1', auth: true },
+            { name: 'Get Rules (All)', method: 'GET', path: '/peraturan/all', auth: true },
+            { name: 'Get Payments', method: 'GET', path: '/payments', auth: true },
+            { name: 'Get Payment Detail', method: 'GET', path: '/payments/1', auth: true },
+            { name: 'Get Maintenance Requests', method: 'GET', path: '/maintenance-requests', auth: true },
+            { name: 'Get Dashboard (User)', method: 'GET', path: '/dashboard', auth: true },
+            { name: 'Get Dashboard (Admin)', method: 'GET', path: '/admin/dashboard', auth: true },
+            { name: 'Get Me', method: 'GET', path: '/me', auth: true },
+            { name: 'Billing Preview', method: 'POST', path: '/billing/preview', auth: true, body: { periode: 'Januari 2026' } },
+            { name: 'Get Notifications', method: 'GET', path: '/notifications', auth: true },
+            { name: 'Get Unread Count', method: 'GET', path: '/notifications/unread-count', auth: true },
+        ];
+
+        let testResults = {
+            success: 0,
+            error: 0,
+            total: 0
+        };
+
+        function init() {
+            // Auto-load token from localStorage
+            const token = localStorage.getItem('token');
+            if (token) {
+                document.getElementById('token').value = token;
+            }
+            
+            renderEndpoints();
+        }
+
+        function renderEndpoints() {
+            const container = document.getElementById('endpoints');
+            container.innerHTML = endpoints.map((endpoint, index) => `
+                <div class="endpoint" id="endpoint-${index}">
+                    <div class="endpoint-name">
+                        ${endpoint.name}
+                        <span class="status" id="status-${index}"></span>
+                    </div>
+                    <div class="endpoint-url">${endpoint.method} ${endpoint.path}</div>
+                    <button onclick="testEndpoint(${index})">Test</button>
+                </div>
+            `).join('');
+        }
+
+        async function testEndpoint(index) {
+            const endpoint = endpoints[index];
+            const apiUrl = document.getElementById('apiUrl').value;
+            const token = document.getElementById('token').value;
+            
+            const statusEl = document.getElementById(`status-${index}`);
+            statusEl.className = 'status loading';
+            statusEl.textContent = 'Testing...';
+            
+            const url = apiUrl + endpoint.path;
+            const options = {
+                method: endpoint.method,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true',
+                },
+                cache: 'no-store',
+                credentials: 'include',
+            };
+            
+            if (endpoint.auth && token) {
+                options.headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            if (endpoint.body) {
+                options.body = JSON.stringify(endpoint.body);
+            }
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(url, options);
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                const data = await response.json();
+                
+                const result = {
+                    endpoint: endpoint.name,
+                    method: endpoint.method,
+                    url: url,
+                    status: response.status,
+                    statusText: response.statusText,
+                    duration: duration + 'ms',
+                    success: response.ok,
+                    data: data
+                };
+                
+                logResult(result);
+                
+                if (response.ok) {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = `✓ ${response.status}`;
+                    testResults.success++;
+                } else {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = `✗ ${response.status}`;
+                    testResults.error++;
+                }
+                
+                testResults.total++;
+                updateSummary();
+                
+            } catch (error) {
+                const result = {
+                    endpoint: endpoint.name,
+                    method: endpoint.method,
+                    url: url,
+                    error: error.message,
+                    success: false
+                };
+                
+                logResult(result);
+                
+                statusEl.className = 'status error';
+                statusEl.textContent = '✗ Error';
+                testResults.error++;
+                testResults.total++;
+                updateSummary();
+            }
+        }
+
+        async function testAllEndpoints() {
+            testResults = { success: 0, error: 0, total: 0 };
+            clearResults();
+            
+            for (let i = 0; i < endpoints.length; i++) {
+                await testEndpoint(i);
+                await new Promise(resolve => setTimeout(resolve, 500)); // Delay between requests
+            }
+        }
+
+        function logResult(result) {
+            const resultsEl = document.getElementById('results');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            let output = `\n[${ timestamp}] ${result.endpoint}\n`;
+            output += `${result.method} ${result.url}\n`;
+            
+            if (result.success) {
+                output += `✓ Status: ${result.status} ${result.statusText} (${result.duration})\n`;
+                output += `Response: ${JSON.stringify(result.data, null, 2)}\n`;
+            } else if (result.error) {
+                output += `✗ Error: ${result.error}\n`;
+            } else {
+                output += `✗ Status: ${result.status} ${result.statusText} (${result.duration})\n`;
+                output += `Response: ${JSON.stringify(result.data, null, 2)}\n`;
+            }
+            
+            output += '─'.repeat(80) + '\n';
+            
+            resultsEl.textContent += output;
+            resultsEl.scrollTop = resultsEl.scrollHeight;
+        }
+
+        function updateSummary() {
+            const summaryEl = document.getElementById('summary');
+            summaryEl.className = 'summary show';
+            summaryEl.innerHTML = `
+                <span class="summary-item">Total: ${testResults.total}</span>
+                <span class="summary-item success">✓ Success: ${testResults.success}</span>
+                <span class="summary-item error">✗ Failed: ${testResults.error}</span>
+                <span class="summary-item">Success Rate: ${Math.round((testResults.success / testResults.total) * 100)}%</span>
+            `;
+        }
+
+        function clearResults() {
+            document.getElementById('results').textContent = '';
+            document.getElementById('summary').className = 'summary';
+            testResults = { success: 0, error: 0, total: 0 };
+            
+            // Clear all status badges
+            endpoints.forEach((_, index) => {
+                const statusEl = document.getElementById(`status-${index}`);
+                if (statusEl) {
+                    statusEl.className = 'status';
+                    statusEl.textContent = '';
+                }
+            });
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
