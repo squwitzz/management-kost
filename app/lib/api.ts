@@ -12,6 +12,7 @@ export class ApiClient {
   private static getHeaders(includeAuth: boolean = true): HeadersInit {
     const headers: HeadersInit = {
       'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true', // Bypass Ngrok warning page for mobile
     };
 
     if (includeAuth) {
@@ -31,6 +32,7 @@ export class ApiClient {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true', // Bypass Ngrok warning for mobile
         },
         body: JSON.stringify({ nomor_telepon, password }),
       });
@@ -94,6 +96,7 @@ export class ApiClient {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true', // Bypass Ngrok warning for mobile
       },
       body: formData,
     });
