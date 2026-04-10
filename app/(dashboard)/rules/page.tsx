@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { UserHeader, UserBottomNav } from '@/app/components';
 import { useAuth } from '@/app/lib/useAuth';
 import { User } from '@/app/types';
+import { ApiClient } from '@/app/lib/api';
 
 interface Peraturan {
   id: number;
@@ -37,30 +38,7 @@ export default function RulesPage() {
 
   const fetchPeraturan = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const response = await fetch('http://127.0.0.1:8000/api/peraturan', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          // Session expired
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-          window.location.href = '/login';
-          return;
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await ApiClient.getRules();
       setPeraturan(data.peraturan || []);
     } catch (err) {
       console.error('Failed to fetch peraturan:', err);

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { User } from '@/app/types';
 import UserHeader from '@/app/components/UserHeader';
 import UserBottomNav from '@/app/components/UserBottomNav';
+import { ApiClient } from '@/app/lib/api';
 
 interface Payment {
   id: number;
@@ -45,18 +46,8 @@ export default function UserPaymentsPage() {
 
   const fetchPayments = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/payments', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPayments(data.payments || []);
-      }
+      const data = await ApiClient.getPayments();
+      setPayments(data.payments || []);
     } catch (err) {
       console.error('Failed to fetch payments:', err);
     } finally {
