@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getApiUrl } from '@/app/lib/api';
+import { ApiClient } from '@/app/lib/api';
 import { showSuccess, showError } from '@/app/lib/sweetalert';
 
 export default function AddRoomPage() {
@@ -20,44 +20,15 @@ export default function AddRoomPage() {
     setSubmitting(true);
 
     try {
-      const token = localStorage.getItem('token');
-      const API_URL = getApiUrl();
-
       const requestBody = {
         nomor_kamar: formData.nomor_kamar,
         tarif_dasar: parseInt(formData.tarif_dasar),
         status: 'Kosong',
       };
 
-      const response = await fetch(`${API_URL}/rooms`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        body: JSON.stringify(requestBody),
-      });
-      
-      const contentType = response.headers.get('content-type');
-      let data;
-      
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        throw new Error('Server returned non-JSON response: ' + text.substring(0, 100));
-      }
-
-      if (response.ok) {
-        await showSuccess('Success!', 'Kamar berhasil ditambahkan');
-        router.push('/admin/rooms');
-      } else {
-        const errorMsg = data.error || (data.errors ? JSON.stringify(data.errors) : `HTTP ${response.status}: ${response.statusText}`);
-        setError(errorMsg);
-        await showError('Error', errorMsg);
-      }
+      await ApiClient.createRoom(requestBody);
+      await showSuccess('Success!', 'Kamar berhasil ditambahkan');
+      router.push('/admin/rooms');
     } catch (err: any) {
       const errorMsg = err.message || 'Failed to add room';
       setError(errorMsg);

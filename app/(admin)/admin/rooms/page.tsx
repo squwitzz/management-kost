@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Room, User } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
-import { getApiUrl } from '@/app/lib/api';
+import { ApiClient } from '@/app/lib/api';
 import { showSuccess, showError, showDeleteConfirm } from '@/app/lib/sweetalert';
 
 export default function RoomsPage() {
@@ -38,28 +38,11 @@ export default function RoomsPage() {
 
   const fetchRooms = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const API_URL = getApiUrl();
-      
-      const timestamp = new Date().getTime();
-      const response = await fetch(`${API_URL}/rooms?_t=${timestamp}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        cache: 'no-store',
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setRooms(data.rooms);
-      } else {
-        const errorData = await response.json();
-        console.error('Failed to fetch rooms:', errorData);
-      }
-    } catch (err) {
+      const data = await ApiClient.getRooms();
+      setRooms(data.rooms);
+    } catch (err: any) {
       console.error('Failed to fetch rooms:', err);
+      await showError('Error', err.message || 'Gagal memuat data kamar');
     } finally {
       setLoading(false);
     }
@@ -70,27 +53,11 @@ export default function RoomsPage() {
     if (!result.isConfirmed) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const API_URL = getApiUrl();
-      
-      const response = await fetch(`${API_URL}/rooms/${roomId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-      });
-
-      if (response.ok) {
-        await showSuccess('Success!', 'Kamar berhasil dihapus');
-        fetchRooms();
-      } else {
-        const data = await response.json();
-        await showError('Error', data.error || 'Gagal menghapus kamar');
-      }
-    } catch (err) {
-      await showError('Error', 'Gagal menghapus kamar');
+      await ApiClient.deleteRoom(roomId);
+      await showSuccess('Success!', 'Kamar berhasil dihapus');
+      fetchRooms();
+    } catch (err: any) {
+      await showError('Error', err.message || 'Gagal menghapus kamar');
       console.error('Delete error:', err);
     }
   };

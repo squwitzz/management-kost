@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { UserHeader, UserBottomNav } from '@/app/components';
 import { User, MaintenanceRequest } from '@/app/types';
 import { useAuth } from '@/app/lib/useAuth';
+import { ApiClient, getBaseUrl } from '@/app/lib/api';
 
 export default function RequestsPage() {
   const router = useRouter();
@@ -23,24 +24,7 @@ export default function RequestsPage() {
 
   const fetchRequests = async () => {
     try {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        return;
-      }
-
-      const response = await fetch('http://127.0.0.1:8000/api/maintenance-requests', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await ApiClient.getMaintenanceRequests();
       setRequests(data.requests || []);
     } catch (err) {
       console.error('Failed to fetch requests:', err);
@@ -232,7 +216,7 @@ export default function RequestsPage() {
                 {request.foto && (
                   <div className="mb-4 rounded-lg overflow-hidden">
                     <img
-                      src={`http://127.0.0.1:8000/storage/${request.foto}`}
+                      src={`${getBaseUrl()}/storage/${request.foto}`}
                       alt="Request photo"
                       className="w-full h-32 object-cover"
                     />

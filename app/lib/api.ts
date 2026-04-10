@@ -31,32 +31,57 @@ const handleUnauthorized = () => {
   }
 };
 
-// Fetch wrapper with auth handling
+// Enhanced fetch wrapper with mobile data support
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-  const response = await fetch(url, options);
-  
-  // Check for 401 Unauthorized
-  if (response.status === 401) {
-    // Get error message first
-    try {
-      const errorData = await response.clone().json();
-      console.error('Auth error:', errorData);
-    } catch (e) {
-      // Ignore JSON parse errors
+  // Add headers for mobile data compatibility
+  const enhancedOptions: RequestInit = {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    },
+    // Disable cache for mobile data
+    cache: 'no-store' as RequestCache,
+    // Add credentials for CORS
+    credentials: 'include' as RequestCredentials,
+  };
+
+  try {
+    const response = await fetch(url, enhancedOptions);
+    
+    // Check for 401 Unauthorized
+    if (response.status === 401) {
+      try {
+        const errorData = await response.clone().json();
+        console.error('Auth error:', errorData);
+      } catch (e) {
+        // Ignore JSON parse errors
+      }
+      
+      handleUnauthorized();
+      throw new Error('Session expired. Please login again.');
     }
     
-    handleUnauthorized();
-    throw new Error('Session expired. Please login again.');
+    return response;
+  } catch (error) {
+    // Enhanced error handling for mobile data
+    if (error instanceof TypeError) {
+      console.error('Network error:', error);
+      throw new Error('Tidak dapat terhubung ke server. Periksa koneksi internet Anda.');
+    }
+    throw error;
   }
-  
-  return response;
 };
 
 export class ApiClient {
   private static getHeaders(includeAuth: boolean = true): HeadersInit {
     const headers: HeadersInit = {
       'Accept': 'application/json',
-      'ngrok-skip-browser-warning': 'true', // Bypass Ngrok warning page for mobile
+      'ngrok-skip-browser-warning': 'true',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
     };
 
     if (includeAuth) {
@@ -76,9 +101,12 @@ export class ApiClient {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'ngrok-skip-browser-warning': 'true', // Bypass Ngrok warning for mobile
+          'ngrok-skip-browser-warning': 'true',
+          'Cache-Control': 'no-cache',
         },
         body: JSON.stringify({ nomor_telepon, password }),
+        cache: 'no-store' as RequestCache,
+        credentials: 'include' as RequestCredentials,
       });
 
       // Handle 404 - backend not properly configured
@@ -93,7 +121,6 @@ export class ApiClient {
           const error = await response.json();
           errorMessage = error.error || error.message || errorMessage;
         } catch (e) {
-          // If response is not JSON, use status text
           errorMessage = response.statusText || errorMessage;
         }
         throw new Error(errorMessage);
@@ -103,9 +130,8 @@ export class ApiClient {
     } catch (error) {
       // Network error (cannot connect to server)
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        throw new Error(`Tidak dapat terhubung ke server di ${API_URL}. Pastikan backend berjalan atau ganti ke ngrok di .env.local`);
+        throw new Error(`Tidak dapat terhubung ke server. Periksa koneksi internet atau pastikan backend berjalan.`);
       }
-      // Re-throw other errors (including our custom errors above)
       throw error;
     }
   }
@@ -319,6 +345,349 @@ export class ApiClient {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || 'Failed to update resident');
+    }
+
+    return response.json();
+  }
+
+  // Room Management
+  static async getRooms() {
+    const timestamp = new Date().getTime();
+    const response = await fetchWithAuth(`${API_URL}/rooms?_t=${timestamp}`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch rooms');
+    }
+
+    return response.json();
+  }
+
+  static async getRoom(roomId: number) {
+    const response = await fetchWithAuth(`${API_URL}/rooms/${roomId}`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch room');
+    }
+
+    return response.json();
+  }
+
+  static async createRoom(data: { nomor_kamar: string; tarif_dasar: number; status?: string }) {
+    const response = await fetchWithAuth(`${API_URL}/rooms`, {
+      method: 'POST',
+      headers: {
+        ...this.getHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || error.message || 'Failed to create room');
+    }
+
+    return response.json();
+  }
+
+  static async deleteRoom(roomId: number) {
+    const response = await fetchWithAuth(`${API_URL}/rooms/${roomId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete room');
+    }
+
+    return response.json();
+  }
+
+  // Rules Management
+  static async getRules() {
+    const response = await fetchWithAuth(`${API_URL}/peraturan`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch rules');
+    }
+
+    return response.json();
+  }
+
+  static async createRule(data: { judul: string; deskripsi: string }) {
+    const response = await fetchWithAuth(`${API_URL}/peraturan`, {
+      method: 'POST',
+      headers: {
+        ...this.getHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to create rule');
+    }
+
+    return response.json();
+  }
+
+  static async updateRule(ruleId: number, data: { judul: string; deskripsi: string }) {
+    const response = await fetchWithAuth(`${API_URL}/peraturan/${ruleId}`, {
+      method: 'PUT',
+      headers: {
+        ...this.getHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update rule');
+    }
+
+    return response.json();
+  }
+
+  static async deleteRule(ruleId: number) {
+    const response = await fetchWithAuth(`${API_URL}/peraturan/${ruleId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete rule');
+    }
+
+    return response.json();
+  }
+
+  // Maintenance Requests
+  static async getMaintenanceRequests() {
+    const response = await fetchWithAuth(`${API_URL}/maintenance-requests`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch maintenance requests');
+    }
+
+    return response.json();
+  }
+
+  static async getMaintenanceRequest(requestId: number) {
+    const response = await fetchWithAuth(`${API_URL}/maintenance-requests/${requestId}`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch maintenance request');
+    }
+
+    return response.json();
+  }
+
+  static async createMaintenanceRequest(data: FormData) {
+    const token = localStorage.getItem('token');
+    const response = await fetchWithAuth(`${API_URL}/maintenance-requests`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
+      body: data,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to create maintenance request');
+    }
+
+    return response.json();
+  }
+
+  static async updateMaintenanceRequestStatus(requestId: number, status: string) {
+    const response = await fetchWithAuth(`${API_URL}/maintenance-requests/${requestId}/status`, {
+      method: 'PUT',
+      headers: {
+        ...this.getHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update request status');
+    }
+
+    return response.json();
+  }
+
+  // Admin Dashboard
+  static async getAdminDashboard() {
+    const response = await fetchWithAuth(`${API_URL}/admin/dashboard`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch dashboard data');
+    }
+
+    return response.json();
+  }
+
+  // User Dashboard
+  static async getUserDashboard() {
+    const response = await fetchWithAuth(`${API_URL}/dashboard`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch dashboard data');
+    }
+
+    return response.json();
+  }
+
+  // Residents (Admin)
+  static async getResidents() {
+    const response = await fetchWithAuth(`${API_URL}/admin/residents`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch residents');
+    }
+
+    return response.json();
+  }
+
+  static async registerResident(data: any) {
+    const response = await fetchWithAuth(`${API_URL}/admin/register-resident`, {
+      method: 'POST',
+      headers: {
+        ...this.getHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to register resident');
+    }
+
+    return response.json();
+  }
+
+  // Admin Payments
+  static async getAdminPayments() {
+    const response = await fetchWithAuth(`${API_URL}/admin/payments`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch payments');
+    }
+
+    return response.json();
+  }
+
+  static async getPayment(paymentId: number) {
+    const response = await fetchWithAuth(`${API_URL}/payments/${paymentId}`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch payment');
+    }
+
+    return response.json();
+  }
+
+  static async updatePaymentStatus(paymentId: number, status: string) {
+    const response = await fetchWithAuth(`${API_URL}/admin/payments/${paymentId}/status`, {
+      method: 'PUT',
+      headers: {
+        ...this.getHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update payment status');
+    }
+
+    return response.json();
+  }
+
+  static async generatePayments(data: any) {
+    const response = await fetchWithAuth(`${API_URL}/admin/payments/generate`, {
+      method: 'POST',
+      headers: {
+        ...this.getHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to generate payments');
+    }
+
+    return response.json();
+  }
+
+  static async getPaymentSettings() {
+    const response = await fetchWithAuth(`${API_URL}/admin/payment-settings`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to fetch payment settings');
+    }
+
+    return response.json();
+  }
+
+  static async updatePaymentSettings(data: any) {
+    const response = await fetchWithAuth(`${API_URL}/admin/payment-settings`, {
+      method: 'POST',
+      headers: {
+        ...this.getHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update payment settings');
     }
 
     return response.json();
