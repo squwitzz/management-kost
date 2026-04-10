@@ -15,23 +15,44 @@ return [
     |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'storage/*'],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:3000', 'http://localhost:3002', 'https://management-kost.vercel.app'],
+    'allowed_origins' => [
+        'http://localhost:3000', 
+        'http://localhost:3002', 
+        'https://management-kost.vercel.app',
+        'https://mykost-cendana.xyz',
+    ],
 
     'allowed_origins_patterns' => [
-    '/\.vercel\.app$/',
-],
+        '/\.vercel\.app$/',
+    ],
 
-    'allowed_headers' => ['*'],
+    'allowed_headers' => [
+        '*',
+        'Content-Type',
+        'X-Requested-With',
+        'Authorization',
+        'Accept',
+        'Origin',
+        'Cache-Control',
+        'Pragma',
+        'ngrok-skip-browser-warning',
+    ],
 
-    'exposed_headers' => [],
+    'exposed_headers' => [
+        'Cache-Control',
+        'Content-Language',
+        'Content-Type',
+        'Expires',
+        'Last-Modified',
+        'Pragma',
+    ],
 
-    'max_age' => 0,
+    'max_age' => 86400, // 24 hours
 
     'supports_credentials' => true,
-    
 
 ];

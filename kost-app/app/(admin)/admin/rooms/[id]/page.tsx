@@ -5,6 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { Room, Payment } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
+import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { showSuccess, showError, showConfirm } from '@/app/lib/sweetalert';
 
 export default function RoomDetailPage() {
   const router = useRouter();
@@ -39,20 +41,19 @@ export default function RoomDetailPage() {
 
   const fetchRoomDetail = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/rooms/${roomId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      console.log('Fetching room detail for ID:', roomId);
+      const data = await ApiClient.getRoom(parseInt(roomId));
+      console.log('Room data:', data);
+      if (data.room) {
         setRoom(data.room);
+      } else {
+        await showError('Error', 'Room not found');
+        router.push('/admin/rooms');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch room:', err);
+      await showError('Error', err.message || 'Failed to load room details');
+      router.push('/admin/rooms');
     } finally {
       setLoading(false);
     }
@@ -60,45 +61,48 @@ export default function RoomDetailPage() {
 
   const fetchPayments = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/payments', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Filter payments for this room's residents
-        setPayments(data.payments || []);
-      }
+      const data = await ApiClient.getAdminPayments();
+      // Filter payments for this room's residents
+      setPayments(data.payments || []);
     } catch (err) {
       console.error('Failed to fetch payments:', err);
     }
   };
 
   const handleRemoveResident = async () => {
+    const result = await showConfirm(
+      'Kosongkan Kamar?',
+      `Apakah Anda yakin ingin mengosongkan kamar ini dari penghuni ${resident?.nama}? Penghuni akan dihapus dari kamar ini dan status kamar akan menjadi "Kosong".`,
+      'Ya, Kosongkan'
+    );
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
     try {
+      const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/rooms/${roomId}/remove-resident`, {
+      const response = await fetch(`${API_URL}/rooms/${roomId}/remove-resident`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
         },
+        cache: 'no-store' as RequestCache,
+        credentials: 'include' as RequestCredentials,
       });
 
       if (response.ok) {
-        alert('Penghuni berhasil dikosongkan dari kamar!');
+        await showSuccess('Berhasil!', 'Penghuni berhasil dikosongkan dari kamar!');
         setShowRemoveModal(false);
         fetchRoomDetail(); // Refresh room data
       } else {
         const data = await response.json();
-        alert(data.error || 'Gagal mengosongkan kamar');
+        await showError('Error', data.error || 'Gagal mengosongkan kamar');
       }
     } catch (err) {
-      alert('Gagal mengosongkan kamar');
+      await showError('Error', 'Gagal mengosongkan kamar');
       console.error('Remove resident error:', err);
     }
   };
@@ -137,7 +141,7 @@ export default function RoomDetailPage() {
                 className="w-32 h-32 rounded-full object-cover"
                 src={
                   resident?.foto_penghuni
-                    ? `http://127.0.0.1:8000/storage/${resident.foto_penghuni}`
+                    ? `${getBaseUrl()}/storage/${resident.foto_penghuni}`
                     : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUe_fqSs_mEXImBn1Td_tce-oeWCz2RBOuzeAboY3q2ZSX3x1uhrrYkxyULXIOX-K8gQ7Gwf_Fewm-Dv05BdoAqlylRvBeuzeOje2aH2__JR3wjlyUbdLvM57eBZW52YNy7NHprIBSPZdV0nAq9pgCb4ALVjfkw_NqusJdPlOsrujJK-1utnB_yWit4dwKrwmjHjTlCZQAjqxk3wcTGByTJZPI6r1j8XXvOCoUDWUFX7jxjK0OPESkDug1XkKIWMg9cYssyxUnL40'
                 }
               />

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ApiClient } from '@/app/lib/api';
+import { showSuccess, showError } from '@/app/lib/sweetalert';
 
 export default function AddRoomPage() {
   const router = useRouter();
@@ -18,54 +20,19 @@ export default function AddRoomPage() {
     setSubmitting(true);
 
     try {
-      const token = localStorage.getItem('token');
-      console.log('Token:', token ? 'exists' : 'missing');
-
       const requestBody = {
         nomor_kamar: formData.nomor_kamar,
         tarif_dasar: parseInt(formData.tarif_dasar),
         status: 'Kosong',
       };
-      console.log('Request body:', requestBody);
 
-      const response = await fetch('http://127.0.0.1:8000/api/rooms', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      const contentType = response.headers.get('content-type');
-      let data;
-      
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        console.log('Response text:', text);
-        throw new Error('Server returned non-JSON response: ' + text.substring(0, 100));
-      }
-      
-      console.log('Response data:', data);
-
-      if (response.ok) {
-        alert('Kamar berhasil ditambahkan!');
-        router.push('/admin/rooms');
-      } else {
-        const errorMsg = data.error || (data.errors ? JSON.stringify(data.errors) : `HTTP ${response.status}: ${response.statusText}`);
-        setError(errorMsg);
-        console.error('Error:', errorMsg);
-      }
+      await ApiClient.createRoom(requestBody);
+      await showSuccess('Success!', 'Kamar berhasil ditambahkan');
+      router.push('/admin/rooms');
     } catch (err: any) {
       const errorMsg = err.message || 'Failed to add room';
       setError(errorMsg);
-      console.error('Exception:', err);
+      await showError('Error', errorMsg);
     } finally {
       setSubmitting(false);
     }

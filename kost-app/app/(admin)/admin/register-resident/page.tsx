@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ApiClient } from '@/app/lib/api';
+import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { showSuccess, showError } from '@/app/lib/sweetalert';
 import { Room, User } from '@/app/types';
 
 export default function RegisterResidentPage() {
@@ -52,21 +53,19 @@ export default function RegisterResidentPage() {
 
   const fetchRooms = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/rooms', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Filter only available rooms
-        const availableRooms = data.rooms.filter((room: Room) => room.status === 'Kosong');
-        setRooms(availableRooms);
+      console.log('Fetching rooms for registration...');
+      const data = await ApiClient.getRooms();
+      console.log('Rooms data:', data);
+      // Filter only available rooms
+      const availableRooms = (data.rooms || []).filter((room: Room) => room.status === 'Kosong');
+      console.log('Available rooms:', availableRooms);
+      setRooms(availableRooms);
+      if (availableRooms.length === 0) {
+        setError('Tidak ada kamar kosong yang tersedia');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch rooms:', err);
+      setError(err.message || 'Failed to load rooms');
     }
   };
 
@@ -119,19 +118,23 @@ export default function RegisterResidentPage() {
         formDataToSend.append('foto_penghuni', formData.foto_penghuni);
       }
 
-      const response = await fetch('http://127.0.0.1:8000/api/rooms/register-penghuni', {
+      const API_URL = getApiUrl();
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/rooms/register-penghuni`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${token}`,
           Accept: 'application/json',
         },
         body: formDataToSend,
+        cache: 'no-store' as RequestCache,
+        credentials: 'include' as RequestCredentials,
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        alert('Penghuni berhasil didaftarkan!');
+        await showSuccess('Berhasil!', 'Penghuni berhasil didaftarkan!');
         router.push('/admin/residents');
       } else {
         setError(data.error || data.errors ? JSON.stringify(data.errors) : 'Registration failed');

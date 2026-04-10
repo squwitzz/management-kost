@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserHeader, UserBottomNav } from '@/app/components';
 import { User } from '@/app/types';
+import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -52,29 +53,15 @@ export default function ProfilePage() {
 
   const fetchUserData = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const data = await ApiClient.getMe();
+      setUser(data.user);
+      setNama(data.user.nama || '');
+      setEmail(data.user.email || '');
+      setNomorTelepon(data.user.nomor_telepon || '');
+      setAlamatDomisili(data.user.alamat_domisili || '');
       
-      const response = await fetch('http://127.0.0.1:8000/api/me', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-        setNama(data.user.nama || '');
-        setEmail(data.user.email || '');
-        setNomorTelepon(data.user.nomor_telepon || '');
-        setAlamatDomisili(data.user.alamat_domisili || '');
-        
-        // Update localStorage
-        localStorage.setItem('user', JSON.stringify(data.user));
-      } else {
-        const errorData = await response.json();
-        setError('Failed to load profile data');
-      }
+      // Update localStorage
+      localStorage.setItem('user', JSON.stringify(data.user));
     } catch (err) {
       setError('Failed to load profile data');
     }
@@ -99,7 +86,6 @@ export default function ProfilePage() {
     setSaving(true);
 
     try {
-      const token = localStorage.getItem('token');
       const formData = new FormData();
       formData.append('nama', nama);
       formData.append('email', email);
@@ -109,12 +95,17 @@ export default function ProfilePage() {
         formData.append('foto_penghuni', foto);
       }
 
-      const response = await fetch('http://127.0.0.1:8000/api/profile/update', {
+      const token = localStorage.getItem('token');
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/profile/update`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
+          'ngrok-skip-browser-warning': 'true',
         },
         body: formData,
+        cache: 'no-store' as RequestCache,
+        credentials: 'include' as RequestCredentials,
       });
 
       if (response.ok) {
@@ -159,33 +150,19 @@ export default function ProfilePage() {
     setChangingPassword(true);
     
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/change-password', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          current_password: currentPassword,
-          new_password: newPassword,
-          new_password_confirmation: confirmPassword,
-        }),
+      await ApiClient.changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+        new_password_confirmation: confirmPassword,
       });
 
-      if (response.ok) {
-        setSuccess('Password changed successfully');
-        setShowPasswordModal(false);
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-      } else {
-        const data = await response.json();
-        setPasswordError(data.message || 'Failed to change password');
-      }
-    } catch (err) {
-      setPasswordError('Failed to change password. Please try again.');
+      setSuccess('Password changed successfully');
+      setShowPasswordModal(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      setPasswordError(err.message || 'Failed to change password');
     } finally {
       setChangingPassword(false);
     }
@@ -240,7 +217,7 @@ export default function ProfilePage() {
                 src={
                   preview ||
                   (user?.foto_penghuni
-                    ? `http://127.0.0.1:8000/storage/${user.foto_penghuni}`
+                    ? `${getBaseUrl()}/storage/${user.foto_penghuni}`
                     : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUe_fqSs_mEXImBn1Td_tce-oeWCz2RBOuzeAboY3q2ZSX3x1uhrrYkxyULXIOX-K8gQ7Gwf_Fewm-Dv05BdoAqlylRvBeuzeOje2aH2__JR3wjlyUbdLvM57eBZW52YNy7NHprIBSPZdV0nAq9pgCb4ALVjfkw_NqusJdPlOsrujJK-1utnB_yWit4dwKrwmjHjTlCZQAjqxk3wcTGByTJZPI6r1j8XXvOCoUDWUFX7jxjK0OPESkDug1XkKIWMg9cYssyxUnL40')
                 }
               />

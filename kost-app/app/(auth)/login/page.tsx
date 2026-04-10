@@ -25,6 +25,9 @@ export default function LoginPage() {
       // Save token and user data
       localStorage.setItem('token', response.access_token);
       localStorage.setItem('user', JSON.stringify(response.user));
+      
+      // Set cookie for middleware
+      document.cookie = `token=${response.access_token}; path=/; max-age=${60 * 60 * 24 * 7}`; // 7 days
 
       // Redirect based on role
       if (response.user.role === 'Admin') {

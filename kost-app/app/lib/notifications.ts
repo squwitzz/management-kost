@@ -1,5 +1,10 @@
 // Notification Helper Functions
 
+// Extended notification options with vibrate support
+interface ExtendedNotificationOptions extends NotificationOptions {
+  vibrate?: number[];
+}
+
 export const requestNotificationPermission = async (): Promise<boolean> => {
   if (!('Notification' in window)) {
     console.log('This browser does not support notifications');
@@ -18,7 +23,7 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
   return false;
 };
 
-export const showNotification = (title: string, options?: NotificationOptions) => {
+export const showNotification = (title: string, options?: ExtendedNotificationOptions) => {
   if (Notification.permission === 'granted') {
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       // Use service worker to show notification
@@ -28,7 +33,7 @@ export const showNotification = (title: string, options?: NotificationOptions) =
           badge: '/icon-192.png',
           vibrate: [200, 100, 200],
           ...options,
-        });
+        } as NotificationOptions);
       });
     } else {
       // Fallback to regular notification

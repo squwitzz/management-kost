@@ -23,3 +23,12 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Disable directory browsing
+Options -Indexes
+
+# Prevent access to .env file
+<Files .env>
+    Order allow,deny
+    Deny from all
+</Files>

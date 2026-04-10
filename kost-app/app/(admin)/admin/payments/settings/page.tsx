@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { User } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
+import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { showSuccess, showError } from '@/app/lib/sweetalert';
 
 interface BillingSettings {
   billing_cycle_days: number;
@@ -59,18 +61,8 @@ export default function BillingSettingsPage() {
 
   const fetchSettings = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/billing/settings', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSettings(data.settings);
-      }
+      const data = await ApiClient.getPaymentSettings();
+      setSettings(data.settings);
     } catch (err) {
       console.error('Failed to fetch settings:', err);
     } finally {
@@ -82,26 +74,11 @@ export default function BillingSettingsPage() {
     setSaving(true);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/billing/settings', {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify(settings),
-      });
-
-      if (response.ok) {
-        alert('Settings berhasil disimpan!');
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to save settings');
-      }
-    } catch (err) {
+      await ApiClient.updatePaymentSettings(settings);
+      await showSuccess('Berhasil!', 'Settings berhasil disimpan!');
+    } catch (err: any) {
       console.error('Failed to save settings:', err);
-      alert('Failed to save settings');
+      await showError('Error', err.message || 'Failed to save settings');
     } finally {
       setSaving(false);
     }

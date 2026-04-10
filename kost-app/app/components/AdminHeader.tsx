@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { getNotificationRoute } from '@/app/lib/notificationRouter';
+import { getApiUrl } from '@/app/lib/api';
 
 interface AdminHeaderProps {
   title?: string;
@@ -73,10 +74,12 @@ export default function AdminHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://127.0.0.1:8000/api/notifications/unread-count', {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications/unread-count`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
@@ -96,10 +99,12 @@ export default function AdminHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://127.0.0.1:8000/api/notifications', {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
@@ -127,11 +132,13 @@ export default function AdminHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`http://127.0.0.1:8000/api/notifications/${id}/read`, {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications/${id}/read`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
@@ -177,11 +184,13 @@ export default function AdminHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://127.0.0.1:8000/api/notifications/read-all', {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications/read-all`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
@@ -228,6 +237,8 @@ export default function AdminHeader({
     if (typeof window === 'undefined') return;
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    // Remove cookie
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
     router.push('/login');
   };
 
@@ -244,7 +255,7 @@ export default function AdminHeader({
             </button>
           ) : (
             <button className="text-[#4C4E50] active:scale-95 duration-150 transition-opacity hover:opacity-80">
-              <span className="material-symbols-outlined">menu</span>
+             
             </button>
           )}
           <h1 className="font-headline font-black text-[#4C4E50] text-lg md:text-xl tracking-tighter">
@@ -284,6 +295,18 @@ export default function AdminHeader({
                 className="text-[#4C4E50] font-label text-sm font-medium hover:opacity-80 transition-opacity"
               >
                 Requests
+              </button>
+              <button
+                onClick={() => router.push('/admin/rules')}
+                className="text-[#4C4E50] font-label text-sm font-medium hover:opacity-80 transition-opacity"
+              >
+                Rules
+              </button>
+              <button
+                onClick={() => router.push('/admin/profile')}
+                className="text-[#4C4E50] font-label text-sm font-medium hover:opacity-80 transition-opacity"
+              >
+                Profile
               </button>
               <button
                 onClick={handleLogout}

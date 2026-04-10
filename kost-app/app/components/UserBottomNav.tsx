@@ -10,6 +10,9 @@ export default function UserBottomNav() {
     if (path === '/profile') {
       return pathname === '/profile';
     }
+    if (path === '/rules') {
+      return pathname === '/rules';
+    }
     return pathname === path;
   };
 
@@ -68,20 +71,20 @@ export default function UserBottomNav() {
         <span className="font-label text-[10px] font-medium tracking-wide uppercase">Requests</span>
       </button>
       <button
-        onClick={() => handleNavigation('#')}
+        onClick={() => handleNavigation('/rules')}
         className={`flex flex-col items-center gap-1 ${
-          isActive('/food')
+          isActive('/rules')
             ? 'text-[#003EC6] font-bold'
             : 'text-[#4C4E50] opacity-60'
         } hover:bg-[#F2F4F6] rounded-xl transition-all p-2 active:scale-90 tap-highlight-none`}
       >
         <span
           className="material-symbols-outlined"
-          style={isActive('/food') ? { fontVariationSettings: "'FILL' 1" } : {}}
+          style={isActive('/rules') ? { fontVariationSettings: "'FILL' 1" } : {}}
         >
-          restaurant
+          rule
         </span>
-        <span className="font-label text-[10px] font-medium tracking-wide uppercase">Food</span>
+        <span className="font-label text-[10px] font-medium tracking-wide uppercase">Rules</span>
       </button>
       <button
         onClick={() => handleNavigation('/profile')}

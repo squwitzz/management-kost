@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Room, User } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
+import { ApiClient } from '@/app/lib/api';
+import { showSuccess, showError, showDeleteConfirm } from '@/app/lib/sweetalert';
 
 export default function RoomsPage() {
   const router = useRouter();
@@ -36,57 +38,26 @@ export default function RoomsPage() {
 
   const fetchRooms = async () => {
     try {
-      const token = localStorage.getItem('token');
-      console.log('Fetching rooms with token:', token ? 'exists' : 'missing');
-      
-      const response = await fetch('http://127.0.0.1:8000/api/rooms', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      console.log('Fetch rooms response status:', response.status);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Rooms data:', data);
-        setRooms(data.rooms);
-      } else {
-        const errorData = await response.json();
-        console.error('Failed to fetch rooms:', errorData);
-      }
-    } catch (err) {
+      const data = await ApiClient.getRooms();
+      setRooms(data.rooms);
+    } catch (err: any) {
       console.error('Failed to fetch rooms:', err);
+      await showError('Error', err.message || 'Gagal memuat data kamar');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteRoom = async (roomId: number, roomNumber: string) => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus kamar ${roomNumber}?`)) {
-      return;
-    }
+    const result = await showDeleteConfirm(`Kamar ${roomNumber}`);
+    if (!result.isConfirmed) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/rooms/${roomId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        alert('Kamar berhasil dihapus!');
-        fetchRooms(); // Refresh the list
-      } else {
-        const data = await response.json();
-        alert(data.error || 'Gagal menghapus kamar');
-      }
-    } catch (err) {
-      alert('Gagal menghapus kamar');
+      await ApiClient.deleteRoom(roomId);
+      await showSuccess('Success!', 'Kamar berhasil dihapus');
+      fetchRooms();
+    } catch (err: any) {
+      await showError('Error', err.message || 'Gagal menghapus kamar');
       console.error('Delete error:', err);
     }
   };
@@ -94,6 +65,7 @@ export default function RoomsPage() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
     router.push('/login');
   };
 

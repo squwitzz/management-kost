@@ -4,51 +4,30 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserHeader, UserBottomNav } from '@/app/components';
 import { User, MaintenanceRequest } from '@/app/types';
+import { useAuth } from '@/app/lib/useAuth';
+import { ApiClient, getBaseUrl } from '@/app/lib/api';
 
 export default function RequestsPage() {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading, user: authUser } = useAuth('Penghuni');
   const [user, setUser] = useState<User | null>(null);
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
+    if (!authLoading && isAuthenticated && authUser) {
+      setUser(authUser);
+      setLoading(false);
+      fetchRequests();
     }
-    setLoading(false);
-    
-    // Fetch requests without blocking initial render
-    fetchRequests();
-  }, []);
+  }, [authLoading, isAuthenticated, authUser]);
 
   const fetchRequests = async () => {
     try {
-      setError(null);
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        setError('No authentication token found');
-        return;
-      }
-
-      const response = await fetch('http://127.0.0.1:8000/api/maintenance-requests', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await ApiClient.getMaintenanceRequests();
       setRequests(data.requests || []);
     } catch (err) {
       console.error('Failed to fetch requests:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch requests');
     }
   };
 
@@ -104,6 +83,14 @@ export default function RequestsPage() {
   const newRequests = requests.filter((r) => r.status === 'New');
   const inProgressRequests = requests.filter((r) => r.status === 'In Progress');
   const resolvedRequests = requests.filter((r) => r.status === 'Resolved');
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-surface pb-24 md:pb-8">
@@ -229,7 +216,7 @@ export default function RequestsPage() {
                 {request.foto && (
                   <div className="mb-4 rounded-lg overflow-hidden">
                     <img
-                      src={`http://127.0.0.1:8000/storage/${request.foto}`}
+                      src={`${getBaseUrl()}/storage/${request.foto}`}
                       alt="Request photo"
                       className="w-full h-32 object-cover"
                     />

@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { User, Payment } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
+import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -40,28 +41,18 @@ export default function ResidentDetailPage() {
 
   const fetchResidentDetail = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/rooms', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Find resident from all rooms
-        let foundResident: User | null = null;
-        data.rooms.forEach((room: any) => {
-          if (room.users && room.users.length > 0) {
-            const residentInRoom = room.users.find((u: User) => u.id === parseInt(residentId));
-            if (residentInRoom) {
-              foundResident = { ...residentInRoom, room };
-            }
+      const data = await ApiClient.getRooms();
+      // Find resident from all rooms
+      let foundResident: User | null = null;
+      data.rooms.forEach((room: any) => {
+        if (room.users && room.users.length > 0) {
+          const residentInRoom = room.users.find((u: User) => u.id === parseInt(residentId));
+          if (residentInRoom) {
+            foundResident = { ...residentInRoom, room };
           }
-        });
-        setResident(foundResident);
-      }
+        }
+      });
+      setResident(foundResident);
     } catch (err) {
       console.error('Failed to fetch resident:', err);
     } finally {
@@ -71,21 +62,11 @@ export default function ResidentDetailPage() {
 
   const fetchPayments = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/payments', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const residentPayments = data.payments.filter(
-          (p: Payment) => p.user_id === parseInt(residentId)
-        );
-        setPayments(residentPayments);
-      }
+      const data = await ApiClient.getAdminPayments();
+      const residentPayments = data.payments.filter(
+        (p: Payment) => p.user_id === parseInt(residentId)
+      );
+      setPayments(residentPayments);
     } catch (err) {
       console.error('Failed to fetch payments:', err);
     }
@@ -309,7 +290,7 @@ export default function ResidentDetailPage() {
                 className="w-full aspect-square object-cover rounded-2xl grayscale hover:grayscale-0 transition-all duration-700"
                 src={
                   resident.foto_penghuni
-                    ? `http://127.0.0.1:8000/storage/${resident.foto_penghuni}`
+                    ? `${getBaseUrl()}/storage/${resident.foto_penghuni}`
                     : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUe_fqSs_mEXImBn1Td_tce-oeWCz2RBOuzeAboY3q2ZSX3x1uhrrYkxyULXIOX-K8gQ7Gwf_Fewm-Dv05BdoAqlylRvBeuzeOje2aH2__JR3wjlyUbdLvM57eBZW52YNy7NHprIBSPZdV0nAq9pgCb4ALVjfkw_NqusJdPlOsrujJK-1utnB_yWit4dwKrwmjHjTlCZQAjqxk3wcTGByTJZPI6r1j8XXvOCoUDWUFX7jxjK0OPESkDug1XkKIWMg9cYssyxUnL40'
                 }
               />

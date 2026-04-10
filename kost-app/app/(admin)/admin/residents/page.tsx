@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { User, Payment } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
+import { ApiClient, getBaseUrl } from '@/app/lib/api';
+import { showSuccess, showError, showDeleteConfirm } from '@/app/lib/sweetalert';
 
 export default function ResidentsPage() {
   const router = useRouter();
@@ -39,29 +41,25 @@ export default function ResidentsPage() {
 
   const fetchResidents = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/rooms', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
+      console.log('Fetching residents...');
+      const data = await ApiClient.getRooms();
+      console.log('Rooms data:', data);
+      
+      // Extract all residents from rooms
+      const allResidents: User[] = [];
+      const rooms = data.rooms || [];
+      rooms.forEach((room: any) => {
+        if (room.users && Array.isArray(room.users) && room.users.length > 0) {
+          room.users.forEach((resident: User) => {
+            allResidents.push({ ...resident, room });
+          });
+        }
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Extract all residents from rooms
-        const allResidents: User[] = [];
-        data.rooms.forEach((room: any) => {
-          if (room.users && room.users.length > 0) {
-            room.users.forEach((resident: User) => {
-              allResidents.push({ ...resident, room });
-            });
-          }
-        });
-        setResidents(allResidents);
-      }
-    } catch (err) {
+      console.log('All residents:', allResidents);
+      setResidents(allResidents);
+    } catch (err: any) {
       console.error('Failed to fetch residents:', err);
+      await showError('Error', err.message || 'Gagal memuat data penghuni');
     } finally {
       setLoading(false);
     }
@@ -69,18 +67,8 @@ export default function ResidentsPage() {
 
   const fetchPayments = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/payments', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPayments(data.payments || []);
-      }
+      const data = await ApiClient.getAdminPayments();
+      setPayments(data.payments || []);
     } catch (err) {
       console.error('Failed to fetch payments:', err);
     }
@@ -94,6 +82,33 @@ export default function ResidentsPage() {
     if (latestPayment.status_bayar === 'Lunas') return 'Paid';
     if (latestPayment.status_bayar === 'Menunggu Verifikasi') return 'Pending';
     return 'Overdue';
+  };
+
+  const handleDeleteResident = async (resident: User) => {
+    const result = await showDeleteConfirm(`${resident.nama} (Room ${resident.room?.nomor_kamar || '-'})`);
+    
+    if (result.isConfirmed) {
+      try {
+        await ApiClient.deleteResident(resident.id);
+        
+        // Remove from list
+        setResidents(residents.filter((r) => r.id !== resident.id));
+        showSuccess('Deleted!', 'Resident has been deleted successfully');
+      } catch (err: any) {
+        console.error('Failed to delete resident:', err);
+        showError('Delete Failed', err.message || 'Failed to delete resident');
+      }
+    }
+  };
+
+  const handleEditResident = (resident: User, e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/admin/residents/${resident.id}/edit`);
+  };
+
+  const handleDeleteClick = (resident: User, e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleDeleteResident(resident);
   };
 
   const filteredResidents = residents.filter((resident) => {
@@ -170,7 +185,7 @@ export default function ResidentsPage() {
                         className="w-12 h-12 rounded-full object-cover"
                         src={
                           resident.foto_penghuni
-                            ? `http://127.0.0.1:8000/storage/${resident.foto_penghuni}`
+                            ? `${getBaseUrl()}/storage/${resident.foto_penghuni}`
                             : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUe_fqSs_mEXImBn1Td_tce-oeWCz2RBOuzeAboY3q2ZSX3x1uhrrYkxyULXIOX-K8gQ7Gwf_Fewm-Dv05BdoAqlylRvBeuzeOje2aH2__JR3wjlyUbdLvM57eBZW52YNy7NHprIBSPZdV0nAq9pgCb4ALVjfkw_NqusJdPlOsrujJK-1utnB_yWit4dwKrwmjHjTlCZQAjqxk3wcTGByTJZPI6r1j8XXvOCoUDWUFX7jxjK0OPESkDug1XkKIWMg9cYssyxUnL40'
                         }
                       />
@@ -187,21 +202,41 @@ export default function ResidentsPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    {status === 'Paid' ? (
-                      <span className="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-label font-bold rounded-full uppercase tracking-tighter">
-                        Paid
-                      </span>
-                    ) : status === 'Pending' ? (
-                      <span className="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-label font-bold rounded-full uppercase tracking-tighter">
-                        Pending
-                      </span>
-                    ) : (
-                      <span className="px-3 py-1 bg-error-container text-on-error-container text-[10px] font-label font-bold rounded-full uppercase tracking-tighter">
-                        Overdue
-                      </span>
-                    )}
-                    <span className="material-symbols-outlined text-outline-variant text-lg">chevron_right</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-end gap-2">
+                      {status === 'Paid' ? (
+                        <span className="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-label font-bold rounded-full uppercase tracking-tighter">
+                          Paid
+                        </span>
+                      ) : status === 'Pending' ? (
+                        <span className="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-label font-bold rounded-full uppercase tracking-tighter">
+                          Pending
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 bg-error-container text-on-error-container text-[10px] font-label font-bold rounded-full uppercase tracking-tighter">
+                          Overdue
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-1 ml-2">
+                      <button
+                        onClick={(e) => handleEditResident(resident, e)}
+                        className="p-2 hover:bg-surface-container-high rounded-lg transition-colors"
+                        title="Edit Profile"
+                      >
+                        <span className="material-symbols-outlined text-primary text-lg">edit</span>
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteClick(resident, e)}
+                        className="p-2 hover:bg-error-container rounded-lg transition-colors"
+                        title="Delete Resident"
+                      >
+                        <span className="material-symbols-outlined text-error text-lg">delete</span>
+                      </button>
+                      <span className="material-symbols-outlined text-outline-variant text-lg">chevron_right</span>
+                    </div>
                   </div>
                 </div>
               );

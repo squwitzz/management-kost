@@ -33,7 +33,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 }
 
 // Safe way to get token without hydration issues
-export function useAuth() {
+export function useToken() {
   const [token, setToken] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
 
@@ -45,3 +45,6 @@ export function useAuth() {
 
   return { token, isClient };
 }
+
+// Re-export useAuth from useAuth.ts for convenience
+export { useAuth } from './useAuth';

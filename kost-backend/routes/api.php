@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\PeraturanController;
 use App\Http\Controllers\Api\RoomController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 /*
@@ -17,6 +19,58 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 | API Routes
 |--------------------------------------------------------------------------
 */
+
+// Health check endpoint
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'message' => 'Backend is running',
+        'timestamp' => now()->toDateTimeString(),
+        'environment' => app()->environment(),
+    ]);
+});
+
+// Database check endpoint
+Route::get('/db-check', function () {
+    try {
+        // Check database connection
+        DB::connection()->getPdo();
+        $dbConnected = true;
+        $dbName = DB::connection()->getDatabaseName();
+        
+        // Check if users table exists
+        $tablesExist = Schema::hasTable('users');
+        
+        // Count users
+        $userCount = $tablesExist ? DB::table('users')->count() : 0;
+        
+        // Get sample user (for testing)
+        $sampleUser = null;
+        if ($tablesExist && $userCount > 0) {
+            $sampleUser = DB::table('users')->first(['id', 'nama', 'nomor_telepon', 'role']);
+        }
+        
+        return response()->json([
+            'status' => 'ok',
+            'database' => [
+                'connected' => $dbConnected,
+                'name' => $dbName,
+                'tables_exist' => $tablesExist,
+                'user_count' => $userCount,
+                'sample_user' => $sampleUser,
+            ],
+            'message' => $tablesExist 
+                ? ($userCount > 0 ? 'Database ready' : 'Database ready but no users found') 
+                : 'Database connected but tables not migrated',
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Database connection failed',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+});
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);

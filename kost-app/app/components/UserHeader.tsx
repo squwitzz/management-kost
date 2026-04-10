@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { User } from '@/app/types';
 import { useState, useEffect, useRef } from 'react';
 import { getNotificationRoute } from '@/app/lib/notificationRouter';
+import { getApiUrl, getBaseUrl } from '@/app/lib/api';
 
 interface Notification {
   id: number;
@@ -76,10 +77,12 @@ export default function UserHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://127.0.0.1:8000/api/notifications/unread-count', {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications/unread-count`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
@@ -99,10 +102,12 @@ export default function UserHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://127.0.0.1:8000/api/notifications', {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
@@ -130,11 +135,13 @@ export default function UserHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`http://127.0.0.1:8000/api/notifications/${id}/read`, {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications/${id}/read`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
@@ -178,11 +185,13 @@ export default function UserHeader({
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://127.0.0.1:8000/api/notifications/read-all', {
+      const API_URL = getApiUrl();
+      const response = await fetch(`${API_URL}/notifications/read-all`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
@@ -225,6 +234,8 @@ export default function UserHeader({
     if (typeof window === 'undefined') return;
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    // Remove cookie
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
     router.push('/login');
   };
 
@@ -242,7 +253,7 @@ export default function UserHeader({
           ) : (
             <>
               <button className="md:hidden text-[#4C4E50] active:scale-95 duration-150 transition-opacity hover:opacity-80">
-                <span className="material-symbols-outlined text-xl">menu</span>
+               
               </button>
               
             </>
@@ -274,22 +285,16 @@ export default function UserHeader({
                 Requests
               </button>
               <button
-                onClick={() => {}}
+                onClick={() => router.push('/rules')}
                 className="text-[#4C4E50] font-label text-sm font-medium hover:opacity-80 transition-opacity"
               >
-                Food
+                Rules
               </button>
               <button
                 onClick={() => router.push('/profile')}
                 className="text-[#4C4E50] font-label text-sm font-medium hover:opacity-80 transition-opacity"
               >
                 Profile
-              </button>
-              <button
-                onClick={handleLogout}
-                className="text-[#4C4E50] font-label text-sm font-medium hover:opacity-80 transition-opacity"
-              >
-                Logout
               </button>
             </nav>
           )}
@@ -383,6 +388,18 @@ export default function UserHeader({
                 </div>
               )}
             </div>
+
+            {/* Mobile Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="md:hidden p-1.5 rounded-full hover:bg-[#F2F4F6] dark:hover:bg-[#2E3133] transition-colors duration-300 scale-95 active:opacity-80"
+              title="Logout"
+            >
+              <span className="material-symbols-outlined text-[#4C4E50] dark:text-[#E2E2E6] text-xl">
+                logout
+              </span>
+            </button>
+
             {/* Desktop Only - Logout and Profile */}
             <button
               onClick={handleLogout}
@@ -398,7 +415,7 @@ export default function UserHeader({
                 className="w-full h-full object-cover"
                 src={
                   user?.foto_penghuni
-                    ? `http://127.0.0.1:8000/storage/${user.foto_penghuni}`
+                    ? `${getBaseUrl()}/storage/${user.foto_penghuni}`
                     : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUe_fqSs_mEXImBn1Td_tce-oeWCz2RBOuzeAboY3q2ZSX3x1uhrrYkxyULXIOX-K8gQ7Gwf_Fewm-Dv05BdoAqlylRvBeuzeOje2aH2__JR3wjlyUbdLvM57eBZW52YNy7NHprIBSPZdV0nAq9pgCb4ALVjfkw_NqusJdPlOsrujJK-1utnB_yWit4dwKrwmjHjTlCZQAjqxk3wcTGByTJZPI6r1j8XXvOCoUDWUFX7jxjK0OPESkDug1XkKIWMg9cYssyxUnL40'
                 }
               />

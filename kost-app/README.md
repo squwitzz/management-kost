@@ -1,36 +1,227 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kost Management System - Frontend
 
-## Getting Started
+Aplikasi manajemen kost berbasis Next.js 16 dengan React 19, Tailwind CSS, dan Prisma.
 
-First, run the development server:
+## 🚀 Tech Stack
 
+- **Framework**: Next.js 16.2.3
+- **UI Library**: React 19.2.4
+- **Styling**: Tailwind CSS 3.4
+- **Database ORM**: Prisma 7.7
+- **Language**: TypeScript 5
+- **PDF Generation**: jsPDF
+
+## 📋 Features
+
+### Admin Features
+- Dashboard dengan statistik real-time
+- Manajemen kamar (tambah, edit, hapus)
+- Manajemen penghuni
+- Generate tagihan pembayaran otomatis
+- Verifikasi pembayaran
+- Kelola permintaan penghuni
+
+### User Features
+- Dashboard penghuni
+- Lihat tagihan pembayaran
+- Upload bukti pembayaran
+- Buat permintaan (maintenance, dll)
+- Update profil
+- Notifikasi real-time
+
+### PWA Features
+- Installable sebagai aplikasi mobile
+- Offline support
+- Push notifications
+- Service worker caching
+
+## 🛠️ Installation
+
+### Prerequisites
+- Node.js 18+ 
+- npm atau yarn
+- MySQL database (untuk Prisma)
+
+### Setup
+
+1. Clone repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd kost-app
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Setup environment variables:
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Edit `.env.local`:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+DATABASE_URL="mysql://user:password@localhost:3306/kost_db"
+```
 
-## Learn More
+4. Setup Prisma:
+```bash
+npx prisma generate
+npx prisma db push
+```
 
-To learn more about Next.js, take a look at the following resources:
+5. Run development server:
+```bash
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Buka [http://localhost:3000](http://localhost:3000)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📁 Project Structure
 
-## Deploy on Vercel
+```
+kost-app/
+├── app/
+│   ├── (admin)/          # Admin routes
+│   │   └── admin/
+│   │       ├── dashboard/
+│   │       ├── rooms/
+│   │       ├── residents/
+│   │       ├── payments/
+│   │       └── requests/
+│   ├── (auth)/           # Auth routes
+│   │   └── login/
+│   ├── (dashboard)/      # User routes
+│   │   ├── dashboard/
+│   │   ├── payments/
+│   │   ├── profile/
+│   │   └── requests/
+│   ├── components/       # Shared components
+│   ├── lib/             # Utilities & hooks
+│   ├── types/           # TypeScript types
+│   └── layout.tsx       # Root layout
+├── prisma/
+│   └── schema.prisma    # Database schema
+├── public/              # Static assets
+└── ...config files
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🔧 Available Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+# Development
+npm run dev              # Start dev server
+
+# Production
+npm run build           # Build for production
+npm start               # Start production server
+
+# Utilities
+npm run lint            # Run ESLint
+npm run clear-cache     # Clear Next.js cache
+npm run fresh-start     # Clear cache & start dev
+```
+
+## 🌐 Deployment
+
+### Deploy to Vercel (Recommended)
+
+1. Push to GitHub
+2. Import project di [vercel.com](https://vercel.com)
+3. Set environment variables
+4. Deploy!
+
+Lihat [DEPLOY_VERCEL.md](./DEPLOY_VERCEL.md) untuk detail lengkap.
+
+### Deploy to cPanel
+
+Lihat [DEPLOY_CPANEL.md](../DEPLOY_CPANEL.md) untuk tutorial lengkap.
+
+## 🔐 Environment Variables
+
+### Required Variables
+
+```env
+# API Backend URL
+NEXT_PUBLIC_API_URL=https://api.yourdomain.com
+
+# App URL (for PWA)
+NEXT_PUBLIC_APP_URL=https://app.yourdomain.com
+
+# Database (Prisma)
+DATABASE_URL="mysql://user:password@host:3306/database"
+```
+
+### Optional Variables
+
+```env
+# Node Environment
+NODE_ENV=production
+
+# Analytics (if using)
+NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
+```
+
+## 📱 PWA Configuration
+
+App sudah dikonfigurasi sebagai PWA dengan:
+- Service Worker (`public/sw.js`)
+- Web Manifest (`public/manifest.json`)
+- Offline support
+- Install prompt
+
+### Testing PWA
+
+1. Build production: `npm run build && npm start`
+2. Buka di Chrome
+3. Check DevTools > Application > Service Workers
+4. Test install prompt
+
+## 🔄 Real-time Features
+
+Aplikasi menggunakan polling untuk real-time updates:
+- Dashboard statistics
+- Payment notifications
+- Request updates
+
+Lihat `app/lib/useRealtime.ts` dan `app/lib/useRealtimeDashboard.ts`
+
+## 🎨 Styling
+
+- **Tailwind CSS** untuk utility-first styling
+- **@tailwindcss/forms** untuk form styling
+- Responsive design (mobile-first)
+- Dark mode ready (tinggal enable)
+
+## 🐛 Troubleshooting
+
+### Hydration Errors
+Lihat [HYDRATION_FIX.md](./HYDRATION_FIX.md)
+
+### Login Issues
+Lihat [FIX_LOGIN_ERROR.md](./FIX_LOGIN_ERROR.md)
+
+### Notification Issues
+Lihat [NOTIFICATION_FIX.md](./NOTIFICATION_FIX.md)
+
+### Cache Issues
+```bash
+npm run clear-cache
+rm -rf .next node_modules
+npm install
+```
+
+## 📄 License
+
+Private project - All rights reserved
+
+## 👥 Authors
+
+- Your Name
+
+## 🤝 Contributing
+
+This is a private project. Contact the owner for contribution guidelines.

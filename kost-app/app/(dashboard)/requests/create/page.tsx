@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserHeader, UserBottomNav } from '@/app/components';
 import { User } from '@/app/types';
+import { ApiClient } from '@/app/lib/api';
 
 export default function CreateRequestPage() {
   const router = useRouter();
@@ -45,7 +46,6 @@ export default function CreateRequestPage() {
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
       const formData = new FormData();
       formData.append('kategori', kategori);
       formData.append('deskripsi', deskripsi);
@@ -54,16 +54,7 @@ export default function CreateRequestPage() {
         formData.append('foto', foto);
       }
 
-      const response = await fetch('http://127.0.0.1:8000/api/maintenance-requests', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error('Failed to submit request');
-
+      await ApiClient.createMaintenanceRequest(formData);
       router.push('/requests');
     } catch (err) {
       setError('Failed to submit request. Please try again.');

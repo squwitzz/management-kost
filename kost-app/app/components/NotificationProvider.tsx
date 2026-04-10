@@ -9,6 +9,7 @@ import {
 } from '@/app/lib/notifications';
 import { usePageVisibility } from '@/app/lib/useRealtime';
 import { getNotificationRoute } from '@/app/lib/notificationRouter';
+import { getApiUrl } from '@/app/lib/api';
 
 export default function NotificationProvider() {
   const pathname = usePathname();
@@ -58,10 +59,12 @@ export default function NotificationProvider() {
       if (!token) return;
 
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/notifications', {
+        const API_URL = getApiUrl();
+        const response = await fetch(`${API_URL}/notifications`, {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: 'application/json',
+            'ngrok-skip-browser-warning': 'true',
           },
         });
 

@@ -1,20 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Optimize for faster refresh
-  reactStrictMode: true,
-  
-  // Reduce build time and improve performance
-  swcMinify: true,
-  
-  // Optimize images
-  images: {
-    unoptimized: true, // Faster development
-  },
-  
-  // Faster refresh
-  experimental: {
-    optimizePackageImports: ['@/app/components', '@/app/lib'],
+  /* config options here */
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://mykost-cendana.xyz/api',
   },
 };
 
