@@ -21,3 +21,9 @@ Route::get('/storage/{path}', function ($path) {
     $mimeType = \Illuminate\Support\Facades\File::mimeType($file);
     return response()->file($file, ['Content-Type' => $mimeType]);
 })->where('path', '.*');
+
+Route::get('/debug-storage', function() {
+    $dir = storage_path('app/public/maintenance_photos');
+    if (!is_dir($dir)) return "No dir: " . $dir;
+    return response()->json(array_diff(scandir($dir), ['..', '.']));
+});
