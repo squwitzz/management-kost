@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { UserHeader, UserBottomNav } from '@/app/components';
 import { User, MaintenanceRequest } from '@/app/types';
 import { useAuth } from '@/app/lib/useAuth';
-import { ApiClient, getBaseUrl } from '@/app/lib/api';
+import { ApiClient, getImageUrl } from '@/app/lib/api';
 
 export default function RequestsPage() {
   const router = useRouter();
@@ -216,7 +216,7 @@ export default function RequestsPage() {
                 {request.foto && (
                   <div className="mb-4 rounded-lg overflow-hidden">
                     <img
-                      src={`${getBaseUrl()}/storage/${request.foto}`}
+                      src={getImageUrl(request.foto)}
                       alt="Request photo"
                       className="w-full h-32 object-cover"
                     />

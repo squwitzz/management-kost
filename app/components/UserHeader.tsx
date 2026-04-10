@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { User } from '@/app/types';
 import { useState, useEffect, useRef } from 'react';
 import { getNotificationRoute } from '@/app/lib/notificationRouter';
-import { getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { getApiUrl, getImageUrl } from '@/app/lib/api';
 
 interface Notification {
   id: number;
@@ -415,7 +415,7 @@ export default function UserHeader({
                 className="w-full h-full object-cover"
                 src={
                   user?.foto_penghuni
-                    ? `${getBaseUrl()}/storage/${user.foto_penghuni}`
+                    ? getImageUrl(user.foto_penghuni)
                     : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUe_fqSs_mEXImBn1Td_tce-oeWCz2RBOuzeAboY3q2ZSX3x1uhrrYkxyULXIOX-K8gQ7Gwf_Fewm-Dv05BdoAqlylRvBeuzeOje2aH2__JR3wjlyUbdLvM57eBZW52YNy7NHprIBSPZdV0nAq9pgCb4ALVjfkw_NqusJdPlOsrujJK-1utnB_yWit4dwKrwmjHjTlCZQAjqxk3wcTGByTJZPI6r1j8XXvOCoUDWUFX7jxjK0OPESkDug1XkKIWMg9cYssyxUnL40'
                 }
               />

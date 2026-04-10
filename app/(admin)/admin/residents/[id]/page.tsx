@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { User, Payment } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
-import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { ApiClient, getImageUrl } from '@/app/lib/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -290,7 +290,7 @@ export default function ResidentDetailPage() {
                 className="w-full aspect-square object-cover rounded-2xl grayscale hover:grayscale-0 transition-all duration-700"
                 src={
                   resident.foto_penghuni
-                    ? `${getBaseUrl()}/storage/${resident.foto_penghuni}`
+                    ? getImageUrl(resident.foto_penghuni)
                     : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUe_fqSs_mEXImBn1Td_tce-oeWCz2RBOuzeAboY3q2ZSX3x1uhrrYkxyULXIOX-K8gQ7Gwf_Fewm-Dv05BdoAqlylRvBeuzeOje2aH2__JR3wjlyUbdLvM57eBZW52YNy7NHprIBSPZdV0nAq9pgCb4ALVjfkw_NqusJdPlOsrujJK-1utnB_yWit4dwKrwmjHjTlCZQAjqxk3wcTGByTJZPI6r1j8XXvOCoUDWUFX7jxjK0OPESkDug1XkKIWMg9cYssyxUnL40'
                 }
               />

@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Room, Payment } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
-import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { ApiClient, getImageUrl } from '@/app/lib/api';
 import { showSuccess, showError, showConfirm } from '@/app/lib/sweetalert';
 
 export default function RoomDetailPage() {
@@ -82,9 +82,8 @@ export default function RoomDetailPage() {
     }
 
     try {
-      const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/rooms/${roomId}/remove-resident`, {
+      const response = await fetch(`${getApiUrl()}/rooms/${roomId}/remove-resident`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -142,7 +141,7 @@ export default function RoomDetailPage() {
                 className="w-32 h-32 rounded-full object-cover"
                 src={
                   resident?.foto_penghuni
-                    ? `${getBaseUrl()}/storage/${resident.foto_penghuni}`
+                    ? getImageUrl(resident.foto_penghuni)
                     : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUe_fqSs_mEXImBn1Td_tce-oeWCz2RBOuzeAboY3q2ZSX3x1uhrrYkxyULXIOX-K8gQ7Gwf_Fewm-Dv05BdoAqlylRvBeuzeOje2aH2__JR3wjlyUbdLvM57eBZW52YNy7NHprIBSPZdV0nAq9pgCb4ALVjfkw_NqusJdPlOsrujJK-1utnB_yWit4dwKrwmjHjTlCZQAjqxk3wcTGByTJZPI6r1j8XXvOCoUDWUFX7jxjK0OPESkDug1XkKIWMg9cYssyxUnL40'
                 }
               />
