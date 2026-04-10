@@ -1,8 +1,18 @@
 // Get API URL from environment variable
 // This will automatically use the correct URL based on the environment:
 // - Local development: uses .env.local (can be ngrok or cPanel)
-// - Production (Vercel): uses .env.production (cPanel)
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+// - Production (Vercel): uses .env.production (cPanel HTTPS)
+const getApiUrl = () => {
+  // Force HTTPS for production (Vercel)
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    return 'https://mykost-cendana.xyz/api';
+  }
+  
+  // Use environment variable or fallback
+  return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+};
+
+const API_URL = getApiUrl();
 
 // Handle session expiration
 const handleUnauthorized = () => {
