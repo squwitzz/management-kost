@@ -4,17 +4,37 @@ const nextConfig: NextConfig = {
   // Optimize for faster refresh
   reactStrictMode: true,
   
-  // Reduce build time and improve performance
-  swcMinify: true,
-  
-  // Optimize images
+  // Optimize images for Vercel
   images: {
-    unoptimized: true, // Faster development
+    unoptimized: false, // Let Vercel optimize images
   },
   
-  // Faster refresh
+  // Optimize package imports
   experimental: {
     optimizePackageImports: ['@/app/components', '@/app/lib'],
+  },
+
+  // Security headers
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+        ],
+      },
+    ];
   },
 };
 
