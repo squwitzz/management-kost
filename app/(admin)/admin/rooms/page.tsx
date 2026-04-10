@@ -38,11 +38,11 @@ export default function RoomsPage() {
     try {
       const token = localStorage.getItem('token');
       
-      // Get API URL - same logic as api.ts
-      let API_URL = 'https://mykost-cendana.xyz/api';
-      if (typeof window !== 'undefined' && !window.location.hostname.includes('vercel.app')) {
-        // If not on Vercel, use env variable or localhost
-        API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+      // Get API URL - force HTTPS for Vercel production
+      let API_URL = 'http://127.0.0.1:8000/api'; // Default for localhost
+      if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+        // Force HTTPS for Vercel
+        API_URL = 'https://mykost-cendana.xyz/api';
       }
       
       console.log('Fetching rooms from:', API_URL);
@@ -82,10 +82,10 @@ export default function RoomsPage() {
     try {
       const token = localStorage.getItem('token');
       
-      // Get API URL - same logic as api.ts
-      let API_URL = 'https://mykost-cendana.xyz/api';
-      if (typeof window !== 'undefined' && !window.location.hostname.includes('vercel.app')) {
-        API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+      // Get API URL - force HTTPS for Vercel production
+      let API_URL = 'http://127.0.0.1:8000/api'; // Default for localhost
+      if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+        API_URL = 'https://mykost-cendana.xyz/api';
       }
       
       const response = await fetch(`${API_URL}/rooms/${roomId}`, {
