@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { User } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
+import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { showSuccess, showError, showConfirm } from '@/app/lib/sweetalert';
 
 interface PreviewItem {
   user_id: number;
@@ -55,13 +57,14 @@ export default function GeneratePaymentsPage() {
 
   const handlePreview = async () => {
     if (!periode) {
-      alert('Silakan pilih periode');
+      await showError('Error', 'Silakan pilih periode');
       return;
     }
 
     try {
+      const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/billing/preview', {
+      const response = await fetch(`${API_URL}/billing/preview`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -71,6 +74,8 @@ export default function GeneratePaymentsPage() {
         body: JSON.stringify({
           periode,
         }),
+        cache: 'no-store' as RequestCache,
+        credentials: 'include' as RequestCredentials,
       });
 
       if (response.ok) {
@@ -79,34 +84,41 @@ export default function GeneratePaymentsPage() {
         setDueDate(data.due_date);
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to preview payments');
+        await showError('Error', error.error || 'Failed to preview payments');
       }
     } catch (err) {
       console.error('Failed to preview:', err);
-      alert('Failed to preview payments');
+      await showError('Error', 'Failed to preview payments');
     }
   };
 
   const handleGenerate = async () => {
     if (!periode) {
-      alert('Silakan pilih periode');
+      await showError('Error', 'Silakan pilih periode');
       return;
     }
 
     if (preview.length === 0) {
-      alert('Silakan preview terlebih dahulu');
+      await showError('Error', 'Silakan preview terlebih dahulu');
       return;
     }
 
-    if (!confirm(`Generate ${preview.length} tagihan untuk periode ${periode}?`)) {
+    const result = await showConfirm(
+      'Generate Tagihan',
+      `Generate ${preview.length} tagihan untuk periode ${periode}?`,
+      'Generate'
+    );
+
+    if (!result.isConfirmed) {
       return;
     }
 
     setGenerating(true);
 
     try {
+      const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/billing/generate', {
+      const response = await fetch(`${API_URL}/billing/generate`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -117,19 +129,21 @@ export default function GeneratePaymentsPage() {
           periode,
           due_date: dueDate,
         }),
+        cache: 'no-store' as RequestCache,
+        credentials: 'include' as RequestCredentials,
       });
 
       if (response.ok) {
         const data = await response.json();
-        alert(`Berhasil generate ${data.generated_count} tagihan!`);
+        await showSuccess('Berhasil!', `Berhasil generate ${data.generated_count} tagihan!`);
         router.push('/admin/payments');
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to generate payments');
+        await showError('Error', error.error || 'Failed to generate payments');
       }
     } catch (err) {
       console.error('Failed to generate:', err);
-      alert('Failed to generate payments');
+      await showError('Error', 'Failed to generate payments');
     } finally {
       setGenerating(false);
     }

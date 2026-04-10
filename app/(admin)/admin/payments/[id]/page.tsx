@@ -5,6 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { User } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
+import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { showSuccess, showError, showConfirm } from '@/app/lib/sweetalert';
 
 interface PaymentDetail {
   id: number;
@@ -73,28 +75,10 @@ export default function PaymentDetailPage() {
 
   const fetchPaymentDetail = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/payments/${paymentId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPayment(data.payment);
-      } else {
-        // Payment not found or error
-        console.error('Failed to fetch payment details');
-        // Redirect back to payments list
-        setTimeout(() => {
-          router.push('/admin/payments');
-        }, 2000);
-      }
+      const data = await ApiClient.getPayment(parseInt(paymentId));
+      setPayment(data.payment);
     } catch (err) {
-      console.error('Failed to fetch payment:', err);
-      // Redirect back to payments list on error
+      console.error('Failed to fetch payment details');
       setTimeout(() => {
         router.push('/admin/payments');
       }, 2000);
@@ -141,15 +125,22 @@ export default function PaymentDetailPage() {
       ? 'Konfirmasi pembayaran ini sebagai LUNAS?' 
       : 'Tolak pembayaran ini?';
     
-    if (!confirm(confirmMessage)) {
+    const result = await showConfirm(
+      'Verifikasi Pembayaran',
+      confirmMessage,
+      status === 'Lunas' ? 'Konfirmasi' : 'Tolak'
+    );
+
+    if (!result.isConfirmed) {
       return;
     }
 
     setVerifying(true);
 
     try {
+      const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/payments/${paymentId}/verify`, {
+      const response = await fetch(`${API_URL}/payments/${paymentId}/verify`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -159,18 +150,23 @@ export default function PaymentDetailPage() {
         body: JSON.stringify({
           status_bayar: status,
         }),
+        cache: 'no-store' as RequestCache,
+        credentials: 'include' as RequestCredentials,
       });
 
       if (response.ok) {
-        alert(`Pembayaran berhasil ${status === 'Lunas' ? 'dikonfirmasi' : 'ditolak'}!`);
+        await showSuccess(
+          'Berhasil!',
+          `Pembayaran berhasil ${status === 'Lunas' ? 'dikonfirmasi' : 'ditolak'}!`
+        );
         fetchPaymentDetail();
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to verify payment');
+        await showError('Error', error.error || 'Failed to verify payment');
       }
     } catch (err) {
       console.error('Failed to verify:', err);
-      alert('Failed to verify payment');
+      await showError('Error', 'Failed to verify payment');
     } finally {
       setVerifying(false);
     }
@@ -344,7 +340,7 @@ export default function PaymentDetailPage() {
               onClick={() => setShowImageModal(true)}
             >
               <img
-                src={`http://127.0.0.1:8000/storage/${payment.bukti_bayar}`}
+                src={`${getBaseUrl()}/storage/${payment.bukti_bayar}`}
                 alt="Bukti Pembayaran"
                 className="w-full rounded-xl shadow-lg"
               />
@@ -437,7 +433,7 @@ export default function PaymentDetailPage() {
               <span className="material-symbols-outlined text-4xl">close</span>
             </button>
             <img
-              src={`http://127.0.0.1:8000/storage/${payment.bukti_bayar}`}
+              src={`${getBaseUrl()}/storage/${payment.bukti_bayar}`}
               alt="Bukti Pembayaran"
               className="w-full h-auto rounded-xl"
               onClick={(e) => e.stopPropagation()}

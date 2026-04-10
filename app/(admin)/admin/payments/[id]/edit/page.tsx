@@ -5,6 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { User } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
+import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { showSuccess, showError, showConfirm, showDeleteConfirm } from '@/app/lib/sweetalert';
 
 interface AdditionalCharge {
   type: string;
@@ -79,50 +81,36 @@ export default function EditPaymentPage() {
       const token = localStorage.getItem('token');
       
       if (!token) {
-        alert('Token tidak ditemukan. Silakan login kembali.');
+        await showError('Error', 'Token tidak ditemukan. Silakan login kembali.');
         router.push('/login');
         return;
       }
 
-      const response = await fetch(`http://127.0.0.1:8000/api/payments/${paymentId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const p = data.payment;
-        
-        if (p.is_finalized) {
-          alert('Tagihan sudah finalized, tidak bisa diedit');
-          router.push('/admin/payments');
-          return;
-        }
-
-        setPayment(p);
-        setDiscount(p.total_discount || 0);
-        setNotes(p.notes || '');
-        
-        if (p.additional_charges && p.additional_charges.length > 0) {
-          setAdditionalCharges(
-            p.additional_charges.map((c: any) => ({
-              type: c.charge_type,
-              amount: c.amount,
-              description: c.description || '',
-            }))
-          );
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('API Error:', response.status, errorData);
-        alert(`Failed to fetch payment details: ${errorData.error || response.statusText}`);
-        router.back();
+      const data = await ApiClient.getPayment(parseInt(paymentId));
+      const p = data.payment;
+      
+      if (p.is_finalized) {
+        await showError('Error', 'Tagihan sudah finalized, tidak bisa diedit');
+        router.push('/admin/payments');
+        return;
       }
-    } catch (err) {
+
+      setPayment(p);
+      setDiscount(p.total_discount || 0);
+      setNotes(p.notes || '');
+      
+      if (p.additional_charges && p.additional_charges.length > 0) {
+        setAdditionalCharges(
+          p.additional_charges.map((c: any) => ({
+            type: c.charge_type,
+            amount: c.amount,
+            description: c.description || '',
+          }))
+        );
+      }
+    } catch (err: any) {
       console.error('Failed to fetch payment:', err);
-      alert(`Failed to fetch payment details: ${err}`);
+      await showError('Error', `Failed to fetch payment details: ${err.message || err}`);
       router.back();
     } finally {
       setLoading(false);
@@ -153,8 +141,9 @@ export default function EditPaymentPage() {
     setSaving(true);
 
     try {
+      const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/billing/payments/${paymentId}/charges`, {
+      const response = await fetch(`${API_URL}/billing/payments/${paymentId}/charges`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -166,80 +155,96 @@ export default function EditPaymentPage() {
           discount,
           notes,
         }),
+        cache: 'no-store' as RequestCache,
+        credentials: 'include' as RequestCredentials,
       });
 
       if (response.ok) {
-        alert('Tagihan berhasil disimpan!');
+        await showSuccess('Berhasil!', 'Tagihan berhasil disimpan!');
         fetchPaymentDetail();
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to save payment');
+        await showError('Error', error.error || 'Failed to save payment');
       }
     } catch (err) {
       console.error('Failed to save:', err);
-      alert('Failed to save payment');
+      await showError('Error', 'Failed to save payment');
     } finally {
       setSaving(false);
     }
   };
 
   const handleFinalize = async () => {
-    if (!confirm('Finalize tagihan ini? Setelah finalized, tagihan tidak bisa diedit lagi dan akan dikirim ke penghuni.')) {
+    const result = await showConfirm(
+      'Finalize Tagihan',
+      'Finalize tagihan ini? Setelah finalized, tagihan tidak bisa diedit lagi dan akan dikirim ke penghuni.',
+      'Finalize'
+    );
+
+    if (!result.isConfirmed) {
       return;
     }
 
     setFinalizing(true);
 
     try {
+      const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/billing/payments/${paymentId}/finalize`, {
+      const response = await fetch(`${API_URL}/billing/payments/${paymentId}/finalize`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
         },
+        cache: 'no-store' as RequestCache,
+        credentials: 'include' as RequestCredentials,
       });
 
       if (response.ok) {
-        alert('Tagihan berhasil dikirim ke penghuni!');
+        await showSuccess('Berhasil!', 'Tagihan berhasil dikirim ke penghuni!');
         router.push('/admin/payments');
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to finalize payment');
+        await showError('Error', error.error || 'Failed to finalize payment');
       }
     } catch (err) {
       console.error('Failed to finalize:', err);
-      alert('Failed to finalize payment');
+      await showError('Error', 'Failed to finalize payment');
     } finally {
       setFinalizing(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm('Hapus draft tagihan ini?')) {
+    const result = await showDeleteConfirm('draft tagihan ini');
+
+    if (!result.isConfirmed) {
       return;
     }
 
     try {
+      const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/billing/payments/${paymentId}`, {
+      const response = await fetch(`${API_URL}/billing/payments/${paymentId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
         },
+        cache: 'no-store' as RequestCache,
+        credentials: 'include' as RequestCredentials,
       });
 
       if (response.ok) {
-        alert('Draft tagihan berhasil dihapus!');
+        await showSuccess('Berhasil!', 'Draft tagihan berhasil dihapus!');
         router.push('/admin/payments');
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to delete payment');
+        await showError('Error', error.error || 'Failed to delete payment');
       }
     } catch (err) {
       console.error('Failed to delete:', err);
-      alert('Failed to delete payment');
+      await showError('Error', 'Failed to delete payment');
     }
   };
 

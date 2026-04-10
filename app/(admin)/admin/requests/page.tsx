@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminHeader, AdminBottomNav } from '@/app/components';
 import { MaintenanceRequest } from '@/app/types';
+import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { showSuccess, showError } from '@/app/lib/sweetalert';
 
 export default function AdminRequestsPage() {
   const router = useRouter();
@@ -31,18 +33,8 @@ export default function AdminRequestsPage() {
 
   const fetchRequests = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/maintenance-requests', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setRequests(data.requests || []);
-      }
+      const data = await ApiClient.getMaintenanceRequests();
+      setRequests(data.requests || []);
     } catch (err) {
       console.error('Failed to fetch requests:', err);
     } finally {
@@ -52,12 +44,15 @@ export default function AdminRequestsPage() {
 
   const fetchStats = async () => {
     try {
+      const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/maintenance-requests/stats', {
+      const response = await fetch(`${API_URL}/maintenance-requests/stats`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
         },
+        cache: 'no-store' as RequestCache,
+        credentials: 'include' as RequestCredentials,
       });
 
       if (response.ok) {
@@ -93,21 +88,9 @@ export default function AdminRequestsPage() {
 
   const updateRequest = async (id: number, updates: Partial<MaintenanceRequest>) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/maintenance-requests/${id}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify(updates),
-      });
-
-      if (response.ok) {
-        fetchRequests();
-        fetchStats();
-      }
+      await ApiClient.updateMaintenanceRequestStatus(id, updates);
+      fetchRequests();
+      fetchStats();
     } catch (err) {
       console.error('Failed to update request:', err);
     }

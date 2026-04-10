@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { User, Payment } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
+import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { showSuccess, showError, showConfirm } from '@/app/lib/sweetalert';
 
 export default function PaymentsPage() {
   const router = useRouter();
@@ -41,18 +43,8 @@ export default function PaymentsPage() {
 
   const fetchPayments = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/payments', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPayments(data.payments || []);
-      }
+      const data = await ApiClient.getAdminPayments();
+      setPayments(data.payments || []);
     } catch (err) {
       console.error('Failed to fetch payments:', err);
     } finally {
@@ -62,12 +54,15 @@ export default function PaymentsPage() {
 
   const fetchDrafts = async () => {
     try {
+      const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/billing/drafts', {
+      const response = await fetch(`${API_URL}/billing/drafts`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: 'application/json',
         },
+        cache: 'no-store' as RequestCache,
+        credentials: 'include' as RequestCredentials,
       });
 
       if (response.ok) {
@@ -95,19 +90,25 @@ export default function PaymentsPage() {
 
   const handleBulkFinalize = async () => {
     if (selectedDrafts.length === 0) {
-      alert('Pilih minimal 1 draft untuk di-finalize');
+      await showError('Error', 'Pilih minimal 1 draft untuk di-finalize');
       return;
     }
 
-    if (!confirm(`Finalize ${selectedDrafts.length} tagihan? Tagihan akan dikirim ke penghuni.`)) {
+    const result = await showConfirm(
+      'Finalize Tagihan',
+      `Finalize ${selectedDrafts.length} tagihan? Tagihan akan dikirim ke penghuni.`
+    );
+
+    if (!result.isConfirmed) {
       return;
     }
 
     setBulkFinalizing(true);
 
     try {
+      const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:8000/api/billing/payments/bulk-finalize', {
+      const response = await fetch(`${API_URL}/billing/payments/bulk-finalize`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -117,21 +118,23 @@ export default function PaymentsPage() {
         body: JSON.stringify({
           payment_ids: selectedDrafts,
         }),
+        cache: 'no-store' as RequestCache,
+        credentials: 'include' as RequestCredentials,
       });
 
       if (response.ok) {
         const data = await response.json();
-        alert(`Berhasil finalize ${data.finalized_count} tagihan!`);
+        await showSuccess('Berhasil!', `Berhasil finalize ${data.finalized_count} tagihan!`);
         setSelectedDrafts([]);
         fetchPayments();
         fetchDrafts();
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to finalize payments');
+        await showError('Error', error.error || 'Failed to finalize payments');
       }
     } catch (err) {
       console.error('Failed to bulk finalize:', err);
-      alert('Failed to finalize payments');
+      await showError('Error', 'Failed to finalize payments');
     } finally {
       setBulkFinalizing(false);
     }

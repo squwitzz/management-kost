@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
 import { useAuth } from '@/app/lib/useAuth';
+import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { showSuccess, showError, showDeleteConfirm } from '@/app/lib/sweetalert';
 
 interface Peraturan {
   id: number;
@@ -47,33 +49,16 @@ export default function AdminRulesPage() {
 
   const fetchPeraturan = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const response = await fetch('http://127.0.0.1:8000/api/peraturan/all', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          // Session expired, redirect to login
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-          window.location.href = '/login';
-          return;
-        }
-        throw new Error('Failed to fetch');
-      }
-
-      const data = await response.json();
+      const data = await ApiClient.getRules();
       setPeraturan(data.peraturan || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch peraturan:', err);
+      if (err.message?.includes('401')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        window.location.href = '/login';
+      }
     } finally {
       setLoading(false);
     }
@@ -85,47 +70,26 @@ export default function AdminRulesPage() {
     setMessage(null);
 
     try {
-      const token = localStorage.getItem('token');
-      const url = editingId 
-        ? `http://127.0.0.1:8000/api/peraturan/${editingId}`
-        : 'http://127.0.0.1:8000/api/peraturan';
-      
-      const method = editingId ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          // Session expired
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-          window.location.href = '/login';
-          return;
-        }
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save');
+      if (editingId) {
+        await ApiClient.updateRule(editingId, formData);
+        setMessage({ type: 'success', text: 'Peraturan updated!' });
+      } else {
+        await ApiClient.createRule(formData);
+        setMessage({ type: 'success', text: 'Peraturan created!' });
       }
-
-      setMessage({ 
-        type: 'success', 
-        text: editingId ? 'Peraturan updated!' : 'Peraturan created!' 
-      });
       
       setShowModal(false);
       resetForm();
       fetchPeraturan();
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.message });
+      if (error.message?.includes('401')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        window.location.href = '/login';
+        return;
+      }
+      setMessage({ type: 'error', text: error.message || 'Failed to save' });
     } finally {
       setLoading(false);
     }
@@ -145,47 +109,41 @@ export default function AdminRulesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Yakin ingin menghapus peraturan ini?')) return;
+    const result = await showDeleteConfirm('peraturan ini');
+
+    if (!result.isConfirmed) {
+      return;
+    }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/peraturan/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-          window.location.href = '/login';
-          return;
-        }
-        throw new Error('Failed to delete');
-      }
-
+      await ApiClient.deleteRule(id);
       setMessage({ type: 'success', text: 'Peraturan deleted!' });
       fetchPeraturan();
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.message });
+      if (error.message?.includes('401')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        window.location.href = '/login';
+        return;
+      }
+      setMessage({ type: 'error', text: error.message || 'Failed to delete' });
     }
   };
 
   const handleToggleActive = async (id: number) => {
     try {
+      const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/peraturan/${id}/toggle`, {
+      const response = await fetch(`${API_URL}/peraturan/${id}/toggle`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
           'ngrok-skip-browser-warning': 'true',
         },
+        cache: 'no-store' as RequestCache,
+        credentials: 'include' as RequestCredentials,
       });
 
       if (!response.ok) {

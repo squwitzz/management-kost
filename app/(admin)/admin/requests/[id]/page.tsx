@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { AdminHeader, AdminBottomNav } from '@/app/components';
 import { MaintenanceRequest } from '@/app/types';
+import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { showSuccess, showError } from '@/app/lib/sweetalert';
 
 export default function RequestDetailPage() {
   const router = useRouter();
@@ -21,21 +23,11 @@ export default function RequestDetailPage() {
 
   const fetchRequest = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/maintenance-requests/${params.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setRequest(data.request);
-        setCatatan(data.request.catatan_admin || '');
-        setPrioritas(data.request.prioritas);
-        setStatus(data.request.status);
-      }
+      const data = await ApiClient.getMaintenanceRequest(parseInt(params.id as string));
+      setRequest(data.request);
+      setCatatan(data.request.catatan_admin || '');
+      setPrioritas(data.request.prioritas);
+      setStatus(data.request.status);
     } catch (err) {
       console.error('Failed to fetch request:', err);
     } finally {
@@ -45,28 +37,16 @@ export default function RequestDetailPage() {
 
   const handleUpdate = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/api/maintenance-requests/${params.id}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          prioritas,
-          status,
-          catatan_admin: catatan,
-        }),
+      await ApiClient.updateMaintenanceRequestStatus(parseInt(params.id as string), {
+        prioritas,
+        status,
+        catatan_admin: catatan,
       });
-
-      if (response.ok) {
-        alert('Request updated successfully');
-        fetchRequest();
-      }
+      await showSuccess('Berhasil!', 'Request updated successfully');
+      fetchRequest();
     } catch (err) {
       console.error('Failed to update request:', err);
-      alert('Failed to update request');
+      await showError('Error', 'Failed to update request');
     }
   };
 
@@ -145,7 +125,7 @@ export default function RequestDetailPage() {
                       onClick={() => setShowImageModal(true)}
                     >
                       <img
-                        src={`http://127.0.0.1:8000/storage/${request.foto}`}
+                        src={`${getBaseUrl()}/storage/${request.foto}`}
                         alt="Request photo"
                         className="w-full h-64 object-cover"
                       />
@@ -177,7 +157,7 @@ export default function RequestDetailPage() {
                   <img
                     src={
                       request.user?.foto_penghuni
-                        ? `http://127.0.0.1:8000/storage/${request.user.foto_penghuni}`
+                        ? `${getBaseUrl()}/storage/${request.user.foto_penghuni}`
                         : 'https://via.placeholder.com/150'
                     }
                     alt={request.user?.nama}
@@ -296,7 +276,7 @@ export default function RequestDetailPage() {
               <span className="material-symbols-outlined text-3xl">close</span>
             </button>
             <img
-              src={`http://127.0.0.1:8000/storage/${request.foto}`}
+              src={`${getBaseUrl()}/storage/${request.foto}`}
               alt="Request photo"
               className="max-w-full max-h-[90vh] object-contain rounded-xl"
             />
