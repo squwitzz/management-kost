@@ -23,9 +23,16 @@ Route::get('/storage/{path}', function ($path) {
 })->where('path', '.*');
 
 Route::get('/debug-storage', function() {
-    $dir = storage_path('app/public/maintenance_photos');
+    $dir = storage_path('app/public');
     if (!is_dir($dir)) return "No dir: " . $dir;
-    return response()->json(array_diff(scandir($dir), ['..', '.']));
+    
+    $files = [];
+    $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir));
+    foreach ($it as $file) {
+        if ($file->isDir()) continue;
+        $files[] = str_replace($dir . DIRECTORY_SEPARATOR, '', $file->getPathname());
+    }
+    return response()->json($files);
 });
 
 Route::get('/image', function() {
