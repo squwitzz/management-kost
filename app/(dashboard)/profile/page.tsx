@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserHeader, UserBottomNav } from '@/app/components';
 import { User } from '@/app/types';
-import { ApiClient, getImageUrl } from '@/app/lib/api';
+import { ApiClient, getApiUrl, getImageUrl } from '@/app/lib/api';
 
 export default function ProfilePage() {
   const router = useRouter();

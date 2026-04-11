@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Room, Payment } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
-import { ApiClient, getImageUrl } from '@/app/lib/api';
+import { ApiClient, getApiUrl, getImageUrl } from '@/app/lib/api';
 import { showSuccess, showError, showConfirm } from '@/app/lib/sweetalert';
 
 export default function RoomDetailPage() {
