@@ -21,7 +21,20 @@ export const getBaseUrl = () => {
 // Safe image retrieval that bypasses cPanel Nginx static block
 export const getImageUrl = (path: string | undefined | null) => {
   if (!path) return 'https://via.placeholder.com/150';
-  return `${getBaseUrl()}/image?file=${path}`;
+  
+  // If it's already a full URL, return it
+  if (path.startsWith('http')) return path;
+  
+  // Remove common prefixes if they exist
+  let cleanPath = path;
+  if (cleanPath.startsWith('storage/')) {
+    cleanPath = cleanPath.replace('storage/', '');
+  }
+  if (cleanPath.startsWith('public/')) {
+    cleanPath = cleanPath.replace('public/', '');
+  }
+  
+  return `${getBaseUrl()}/image?file=${cleanPath}`;
 };
 
 const API_URL = getApiUrl();

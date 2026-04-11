@@ -287,7 +287,7 @@ export default function ResidentDetailPage() {
             <div className="relative group">
               <img
                 alt={resident.nama}
-                className="w-full aspect-square object-cover rounded-2xl grayscale hover:grayscale-0 transition-all duration-700"
+                className="w-full aspect-square object-cover rounded-2xl border border-outline-variant/10 shadow-sm transition-all duration-300"
                 src={
                   resident.foto_penghuni
                     ? getImageUrl(resident.foto_penghuni)
