@@ -210,7 +210,7 @@ export default function ProfilePage() {
         {/* Hero Profile Section */}
         <section className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-8 mb-12 items-end">
           <div className="relative group">
-            <div className="w-48 h-48 rounded-full overflow-hidden bg-surface-container-highest border-4 border-surface-container-lowest">
+            <div className="w-48 h-48 rounded-2xl overflow-hidden bg-surface-container-highest border-4 border-surface-container-lowest shadow-lg">
               <img
                 alt="Profile"
                 className="w-full h-full object-cover"
