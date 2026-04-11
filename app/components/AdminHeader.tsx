@@ -243,22 +243,18 @@ export default function AdminHeader({
   };
 
   return (
-    <header className="w-full top-0 sticky z-50 bg-[#F7F9FB] transition-colors">
-      <div className="flex items-center justify-between px-6 md:px-8 py-4 md:py-6 w-full">
-        <div className="flex items-center gap-4">
-          {showBackButton ? (
+    <header className="w-full top-0 sticky z-50 bg-[#F7F9FB]/80 backdrop-blur-2xl transition-colors border-b border-outline-variant/5">
+      <div className="flex items-center justify-between px-6 md:px-8 py-4 md:py-5 w-full">
+        <div className="flex items-center gap-3">
+          {showBackButton && (
             <button
               onClick={() => router.back()}
-              className="text-[#4C4E50] active:scale-95 duration-150 transition-opacity hover:opacity-80"
+              className="text-[#4C4E50] active:scale-95 duration-150 transition-opacity hover:opacity-80 p-1"
             >
-              <span className="material-symbols-outlined">arrow_back</span>
-            </button>
-          ) : (
-            <button className="text-[#4C4E50] active:scale-95 duration-150 transition-opacity hover:opacity-80">
-             
+              <span className="material-symbols-outlined text-2xl">arrow_back</span>
             </button>
           )}
-          <h1 className="font-headline font-black text-[#4C4E50] text-lg md:text-xl tracking-tighter">
+          <h1 className="font-headline font-black text-[#4C4E50] text-lg md:text-2xl tracking-tight truncate max-w-[150px] md:max-w-none">
             {title}
           </h1>
         </div>
