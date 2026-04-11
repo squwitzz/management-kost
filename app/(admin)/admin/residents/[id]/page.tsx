@@ -41,18 +41,13 @@ export default function ResidentDetailPage() {
 
   const fetchResidentDetail = async () => {
     try {
-      const data = await ApiClient.getRooms();
-      // Find resident from all rooms
-      let foundResident: User | null = null;
-      data.rooms.forEach((room: any) => {
-        if (room.users && room.users.length > 0) {
-          const residentInRoom = room.users.find((u: User) => u.id === parseInt(residentId));
-          if (residentInRoom) {
-            foundResident = { ...residentInRoom, room };
-          }
-        }
-      });
-      setResident(foundResident);
+      const data = await ApiClient.getResident(parseInt(residentId));
+      // Log data to see the shape
+      console.log('Resident data from API:', data);
+      
+      // Backend returns { user: {...} }
+      const residentData = data.user || data.data || data;
+      setResident(residentData);
     } catch (err) {
       console.error('Failed to fetch resident:', err);
     } finally {
