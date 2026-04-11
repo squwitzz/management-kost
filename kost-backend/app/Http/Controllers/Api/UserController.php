@@ -31,6 +31,23 @@ class UserController extends Controller
             return null;
         }
     }
+    
+    /**
+     * List all residents (Admin only)
+     */
+    public function index(Request $request)
+    {
+        $user = $this->getAuthenticatedUser($request);
+        if (!$user || $user->role !== 'Admin') {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $residents = User::where('role', 'Penghuni')->with('room')->get();
+
+        return response()->json([
+            'users' => $residents
+        ]);
+    }
 
     /**
      * Get user detail

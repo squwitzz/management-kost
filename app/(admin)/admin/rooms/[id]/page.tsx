@@ -73,7 +73,7 @@ export default function RoomDetailPage() {
   const handleRemoveResident = async () => {
     const result = await showConfirm(
       'Kosongkan Kamar?',
-      `Apakah Anda yakin ingin mengosongkan kamar ini dari penghuni ${resident?.nama}? Penghuni akan dihapus dari kamar ini dan status kamar akan menjadi "Kosong".`,
+      `Apakah Anda yakin ingin mengosongkan kamar ini? Penghuni ${resident?.nama} hanya akan dilepas dari unit ini, namun data akun penghuni TIDAK akan dihapus.`,
       'Ya, Kosongkan'
     );
 
@@ -300,8 +300,7 @@ export default function RoomDetailPage() {
               <h3 className="font-headline text-2xl font-bold text-primary">Kosongkan Kamar?</h3>
               <p className="text-on-surface-variant text-sm">
                 Apakah Anda yakin ingin mengosongkan kamar ini dari penghuni{' '}
-                <strong>{resident?.nama}</strong>? Penghuni akan dihapus dari kamar ini dan status kamar akan
-                menjadi "Kosong".
+                <strong>{resident?.nama}</strong>? Penghuni hanya akan dilepas dari unit ini, namun <strong>data akun penghuni TIDAK akan dihapus</strong>.
               </p>
               <div className="flex gap-3 w-full pt-4">
                 <button

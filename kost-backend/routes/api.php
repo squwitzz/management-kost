@@ -133,6 +133,7 @@ Route::delete('/peraturan/{id}', [PeraturanController::class, 'destroy']); // Ad
 Route::put('/peraturan/{id}/toggle', [PeraturanController::class, 'toggleActive']); // Admin only
 
 // User Management routes (Admin only - with manual auth in controller)
+Route::get('/admin/residents', [\App\Http\Controllers\Api\UserController::class, 'index']);
 Route::get('/admin/users/{id}', [\App\Http\Controllers\Api\UserController::class, 'show']);
 Route::put('/admin/users/{id}', [\App\Http\Controllers\Api\UserController::class, 'update']);
 Route::delete('/admin/users/{id}', [\App\Http\Controllers\Api\UserController::class, 'destroy']);
