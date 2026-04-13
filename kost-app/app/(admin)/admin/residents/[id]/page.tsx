@@ -326,16 +326,34 @@ export default function ResidentDetailPage() {
             </div>
             <div>
               <p className="font-headline font-bold text-primary">{resident.nama}</p>
-              <p className="font-label text-xs text-on-surface-variant">Room {resident.room?.nomor_kamar || '-'}</p>
+              <p className="font-label text-xs text-on-surface-variant">
+                Room {resident.room?.nomor_kamar || '-'} 
+                {(!resident.room_id || resident.room_id === null) && (
+                  <span className="ml-2 px-2 py-0.5 bg-error-container text-on-error-container text-[10px] font-bold rounded-full">
+                    No Room Assigned
+                  </span>
+                )}
+              </p>
             </div>
           </div>
-          <button
-            onClick={generatePDF}
-            className="flex items-center gap-2 px-4 py-2 bg-secondary text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95"
-          >
-            <span className="material-symbols-outlined text-lg">download</span>
-            <span className="hidden md:inline">Export Biodata</span>
-          </button>
+          <div className="flex gap-2">
+            {(!resident.room_id || resident.room_id === null) && (
+              <button
+                onClick={openAssignRoomModal}
+                className="flex items-center gap-2 px-4 py-2 bg-secondary text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95"
+              >
+                <span className="material-symbols-outlined text-lg">meeting_room</span>
+                <span className="hidden md:inline">Assign Room</span>
+              </button>
+            )}
+            <button
+              onClick={generatePDF}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95"
+            >
+              <span className="material-symbols-outlined text-lg">download</span>
+              <span className="hidden md:inline">Export Biodata</span>
+            </button>
+          </div>
         </div>
 
         {/* Biodata Section: Bento Style Card */}
@@ -372,7 +390,7 @@ export default function ResidentDetailPage() {
                 <span className="material-symbols-outlined text-lg">download</span>
                 Export PDF
               </button>
-              {!resident.room_id && (
+              {(!resident.room_id || resident.room_id === null) && (
                 <button 
                   onClick={openAssignRoomModal}
                   className="flex-1 py-3 px-4 bg-secondary text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity active:scale-95 duration-200 flex items-center justify-center gap-2"
