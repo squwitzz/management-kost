@@ -137,6 +137,7 @@ Route::get('/admin/residents', [\App\Http\Controllers\Api\UserController::class,
 Route::get('/admin/users/{id}', [\App\Http\Controllers\Api\UserController::class, 'show']);
 Route::put('/admin/users/{id}', [\App\Http\Controllers\Api\UserController::class, 'update']);
 Route::delete('/admin/users/{id}', [\App\Http\Controllers\Api\UserController::class, 'destroy']);
+Route::post('/admin/users/{id}/assign-room', [\App\Http\Controllers\Api\UserController::class, 'assignRoom']);
 
 // Debug endpoint
 Route::post('/debug-token', function (Request $request) {

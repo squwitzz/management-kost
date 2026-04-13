@@ -158,4 +158,55 @@ class UserController extends Controller
             'message' => 'User deleted successfully'
         ]);
     }
+
+    /**
+     * Assign room to user (Admin only)
+     */
+    public function assignRoom(Request $request, $id)
+    {
+        $user = $this->getAuthenticatedUser($request);
+        if (!$user || $user->role !== 'Admin') {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $targetUser = User::find($id);
+
+        if (!$targetUser) {
+            return response()->json([
+                'message' => 'User not found'
+            ], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'room_id' => 'required|exists:rooms,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Check if room is available
+        $room = \App\Models\Room::find($request->room_id);
+        if ($room->status !== 'Kosong') {
+            return response()->json([
+                'error' => 'Room is not available'
+            ], 400);
+        }
+
+        // Assign room to user
+        $targetUser->room_id = $request->room_id;
+        $targetUser->save();
+
+        // Update room status
+        $room->status = 'Terisi';
+        $room->save();
+
+        return response()->json([
+            'message' => 'Room assigned successfully',
+            'user' => $targetUser->load('room')
+        ]);
+    }
 }

@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { User, Payment } from '@/app/types';
+import { User, Payment, Room } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
 import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { showSuccess, showError, showConfirm } from '@/app/lib/sweetalert';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -17,6 +18,9 @@ export default function ResidentDetailPage() {
   const [resident, setResident] = useState<User | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAssignRoomModal, setShowAssignRoomModal] = useState(false);
+  const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
+  const [selectedRoomId, setSelectedRoomId] = useState<string>('');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -41,23 +45,77 @@ export default function ResidentDetailPage() {
 
   const fetchResidentDetail = async () => {
     try {
-      const data = await ApiClient.getRooms();
-      // Find resident from all rooms
-      let foundResident: User | null = null;
-      data.rooms.forEach((room: any) => {
-        if (room.users && room.users.length > 0) {
-          const residentInRoom = room.users.find((u: User) => u.id === parseInt(residentId));
-          if (residentInRoom) {
-            foundResident = { ...residentInRoom, room };
-          }
-        }
-      });
-      setResident(foundResident);
+      const data = await ApiClient.getResident(parseInt(residentId));
+      console.log('Resident data:', data);
+      setResident(data.user);
     } catch (err) {
       console.error('Failed to fetch resident:', err);
+      await showError('Error', 'Failed to load resident details');
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchAvailableRooms = async () => {
+    try {
+      const data = await ApiClient.getRooms();
+      const emptyRooms = (data.rooms || []).filter((room: Room) => room.status === 'Kosong');
+      setAvailableRooms(emptyRooms);
+    } catch (err) {
+      console.error('Failed to fetch rooms:', err);
+      await showError('Error', 'Failed to load available rooms');
+    }
+  };
+
+  const handleAssignRoom = async () => {
+    if (!selectedRoomId) {
+      await showError('Error', 'Please select a room');
+      return;
+    }
+
+    const result = await showConfirm(
+      'Assign Room',
+      `Assign this resident to the selected room?`,
+      'Assign'
+    );
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      const API_URL = getApiUrl();
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/admin/users/${residentId}/assign-room`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
+        body: JSON.stringify({ room_id: selectedRoomId }),
+        cache: 'no-store' as RequestCache,
+        credentials: 'include' as RequestCredentials,
+      });
+
+      if (response.ok) {
+        await showSuccess('Success!', 'Room assigned successfully!');
+        setShowAssignRoomModal(false);
+        fetchResidentDetail();
+      } else {
+        const error = await response.json();
+        await showError('Error', error.error || 'Failed to assign room');
+      }
+    } catch (err: any) {
+      console.error('Failed to assign room:', err);
+      await showError('Error', err.message || 'Failed to assign room');
+    }
+  };
+
+  const openAssignRoomModal = () => {
+    fetchAvailableRooms();
+    setShowAssignRoomModal(true);
   };
 
   const fetchPayments = async () => {
@@ -314,6 +372,15 @@ export default function ResidentDetailPage() {
                 <span className="material-symbols-outlined text-lg">download</span>
                 Export PDF
               </button>
+              {!resident.room_id && (
+                <button 
+                  onClick={openAssignRoomModal}
+                  className="flex-1 py-3 px-4 bg-secondary text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity active:scale-95 duration-200 flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-lg">meeting_room</span>
+                  Assign Room
+                </button>
+              )}
               <button className="p-3 bg-secondary-container/10 text-secondary rounded-xl hover:bg-secondary-container/20 transition-colors">
                 <span className="material-symbols-outlined">chat_bubble</span>
               </button>
@@ -465,6 +532,62 @@ export default function ResidentDetailPage() {
       </main>
 
       <AdminBottomNav />
+
+      {/* Assign Room Modal */}
+      {showAssignRoomModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <div className="bg-surface-container-lowest rounded-3xl p-8 max-w-md w-full shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-headline text-2xl font-bold text-primary">Assign Room</h3>
+              <button
+                onClick={() => setShowAssignRoomModal(false)}
+                className="p-2 hover:bg-surface-container rounded-lg transition-colors"
+              >
+                <span className="material-symbols-outlined text-on-surface-variant">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="font-label text-xs font-semibold text-on-surface-variant uppercase tracking-widest block mb-2">
+                  Select Available Room
+                </label>
+                <select
+                  value={selectedRoomId}
+                  onChange={(e) => setSelectedRoomId(e.target.value)}
+                  className="w-full px-4 py-3 bg-surface-container-highest rounded-xl border-none focus:ring-2 focus:ring-secondary/20 transition-all font-body text-primary"
+                >
+                  <option value="">Choose a room...</option>
+                  {availableRooms.map((room) => (
+                    <option key={room.id} value={room.id}>
+                      Room {room.nomor_kamar} - Rp {room.tarif_dasar.toLocaleString('id-ID')}/month
+                    </option>
+                  ))}
+                </select>
+                {availableRooms.length === 0 && (
+                  <p className="text-xs text-error mt-2">No available rooms</p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowAssignRoomModal(false)}
+                  className="flex-1 px-6 py-3 border border-outline-variant/50 text-primary rounded-xl font-label text-sm font-bold hover:bg-surface-container-low transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAssignRoom}
+                  disabled={!selectedRoomId || availableRooms.length === 0}
+                  className="flex-1 px-6 py-3 bg-secondary text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-secondary/20"
+                >
+                  Assign Room
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
