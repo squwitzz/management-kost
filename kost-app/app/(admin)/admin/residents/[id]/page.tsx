@@ -47,6 +47,8 @@ export default function ResidentDetailPage() {
     try {
       const data = await ApiClient.getResident(parseInt(residentId));
       console.log('Resident data:', data);
+      console.log('Resident room_id:', data.user?.room_id);
+      console.log('Resident room:', data.user?.room);
       setResident(data.user);
     } catch (err) {
       console.error('Failed to fetch resident:', err);
@@ -328,7 +330,7 @@ export default function ResidentDetailPage() {
               <p className="font-headline font-bold text-primary">{resident.nama}</p>
               <p className="font-label text-xs text-on-surface-variant">
                 Room {resident.room?.nomor_kamar || '-'} 
-                {(!resident.room_id || resident.room_id === null) && (
+                {(!resident.room || !resident.room_id) && (
                   <span className="ml-2 px-2 py-0.5 bg-error-container text-on-error-container text-[10px] font-bold rounded-full">
                     No Room Assigned
                   </span>
@@ -337,7 +339,24 @@ export default function ResidentDetailPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            {(!resident.room_id || resident.room_id === null) && (
+            {/* Debug button - temporary */}
+            <button
+              onClick={() => {
+                console.log('=== DEBUG RESIDENT DATA ===');
+                console.log('resident:', resident);
+                console.log('resident.room_id:', resident.room_id);
+                console.log('resident.room:', resident.room);
+                console.log('!resident.room:', !resident.room);
+                console.log('!resident.room_id:', !resident.room_id);
+                alert(`room_id: ${resident.room_id}\nroom: ${JSON.stringify(resident.room)}`);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-error text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95"
+            >
+              <span className="material-symbols-outlined text-lg">bug_report</span>
+              <span className="hidden md:inline">Debug</span>
+            </button>
+            
+            {(!resident.room || !resident.room_id) && (
               <button
                 onClick={openAssignRoomModal}
                 className="flex items-center gap-2 px-4 py-2 bg-secondary text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95"
@@ -390,7 +409,7 @@ export default function ResidentDetailPage() {
                 <span className="material-symbols-outlined text-lg">download</span>
                 Export PDF
               </button>
-              {(!resident.room_id || resident.room_id === null) && (
+              {(!resident.room || !resident.room_id) && (
                 <button 
                   onClick={openAssignRoomModal}
                   className="flex-1 py-3 px-4 bg-secondary text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity active:scale-95 duration-200 flex items-center justify-center gap-2"
