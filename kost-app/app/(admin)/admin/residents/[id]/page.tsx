@@ -339,7 +339,7 @@ export default function ResidentDetailPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            {/* Debug button - temporary */}
+            {/* Always show for testing - will fix condition later */}
             <button
               onClick={() => {
                 console.log('=== DEBUG RESIDENT DATA ===');
@@ -348,7 +348,8 @@ export default function ResidentDetailPage() {
                 console.log('resident.room:', resident.room);
                 console.log('!resident.room:', !resident.room);
                 console.log('!resident.room_id:', !resident.room_id);
-                alert(`room_id: ${resident.room_id}\nroom: ${JSON.stringify(resident.room)}`);
+                console.log('resident.room_id === null:', resident.room_id === null);
+                alert(`room_id: ${resident.room_id}\nroom: ${JSON.stringify(resident.room)}\nCondition (!resident.room || !resident.room_id): ${!resident.room || !resident.room_id}`);
               }}
               className="flex items-center gap-2 px-4 py-2 bg-error text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95"
             >
@@ -356,15 +357,15 @@ export default function ResidentDetailPage() {
               <span className="hidden md:inline">Debug</span>
             </button>
             
-            {(!resident.room || !resident.room_id) && (
-              <button
-                onClick={openAssignRoomModal}
-                className="flex items-center gap-2 px-4 py-2 bg-secondary text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95"
-              >
-                <span className="material-symbols-outlined text-lg">meeting_room</span>
-                <span className="hidden md:inline">Assign Room</span>
-              </button>
-            )}
+            {/* Show assign room button - testing */}
+            <button
+              onClick={openAssignRoomModal}
+              className="flex items-center gap-2 px-4 py-2 bg-secondary text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95"
+            >
+              <span className="material-symbols-outlined text-lg">meeting_room</span>
+              <span className="hidden md:inline">Assign Room</span>
+            </button>
+            
             <button
               onClick={generatePDF}
               className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95"
@@ -409,15 +410,14 @@ export default function ResidentDetailPage() {
                 <span className="material-symbols-outlined text-lg">download</span>
                 Export PDF
               </button>
-              {(!resident.room || !resident.room_id) && (
-                <button 
-                  onClick={openAssignRoomModal}
-                  className="flex-1 py-3 px-4 bg-secondary text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity active:scale-95 duration-200 flex items-center justify-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-lg">meeting_room</span>
-                  Assign Room
-                </button>
-              )}
+              {/* Always show for testing */}
+              <button 
+                onClick={openAssignRoomModal}
+                className="flex-1 py-3 px-4 bg-secondary text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity active:scale-95 duration-200 flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-lg">meeting_room</span>
+                Assign Room
+              </button>
               <button className="p-3 bg-secondary-container/10 text-secondary rounded-xl hover:bg-secondary-container/20 transition-colors">
                 <span className="material-symbols-outlined">chat_bubble</span>
               </button>
@@ -427,7 +427,7 @@ export default function ResidentDetailPage() {
           {/* Details Column */}
           <div className="md:col-span-7 space-y-6">
             <div className="bg-surface-container-low rounded-[2rem] p-10 h-full flex flex-col justify-between">
-              <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-on-surface-variant/50 mb-8 label-text">
+              <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-on-surface-variant/50 mb-8 label-text">  
                 Verification &amp; Contact
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 gap-x-8">
