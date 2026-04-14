@@ -151,9 +151,14 @@ export default function PaymentsPage() {
   const finalizedPayments = payments.filter((p: any) => p.is_finalized);
   const pendingVerification = finalizedPayments.filter((p: any) => p.status_bayar === 'Menunggu Verifikasi');
   const unpaidPayments = finalizedPayments.filter((p) => p.status_bayar === 'Belum Lunas');
-  const totalUnpaidAmount = unpaidPayments.reduce((sum, p) => sum + p.jumlah_tagihan, 0);
+  const totalUnpaidAmount = unpaidPayments.reduce((sum, p) => sum + Number(p.jumlah_tagihan), 0);
   const paidCount = finalizedPayments.filter((p) => p.status_bayar === 'Lunas').length;
   const unpaidCount = unpaidPayments.length;
+
+  // Debug logging
+  console.log('Unpaid Payments:', unpaidPayments);
+  console.log('Total Unpaid Amount:', totalUnpaidAmount);
+  console.log('Formatted:', totalUnpaidAmount.toLocaleString('id-ID'));
 
   return (
     <div className="bg-surface text-on-surface font-body selection:bg-secondary/20">
@@ -195,8 +200,11 @@ export default function PaymentsPage() {
             <span className="font-label text-[10px] text-outline font-bold uppercase tracking-wider block mb-1">
               Total Tagihan
             </span>
-            <p className="font-headline text-xl md:text-2xl font-bold text-primary whitespace-nowrap">
-              Rp {totalUnpaidAmount.toLocaleString('id-ID')}
+            <p className="font-headline text-xl md:text-2xl font-bold text-primary">
+              Rp {new Intl.NumberFormat('id-ID', { 
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0 
+              }).format(totalUnpaidAmount)}
             </p>
           </div>
           <div className="bg-secondary-container/10 px-6 py-4 rounded-xl">
