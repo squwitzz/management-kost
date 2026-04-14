@@ -32,28 +32,34 @@ export default function UploadPaymentProofPage() {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
 
-    console.log('Upload page - Token exists:', !!token);
-    console.log('Upload page - User data exists:', !!userData);
+    console.log('=== UPLOAD PAGE AUTH CHECK ===');
+    console.log('Token exists:', !!token);
+    console.log('Token value:', token ? token.substring(0, 20) + '...' : 'null');
+    console.log('User data exists:', !!userData);
 
     if (!token || !userData) {
-      console.error('Missing authentication data - redirecting to login');
+      console.error('❌ Missing authentication data - redirecting to login');
       router.push('/login');
       return;
     }
 
     try {
       const parsedUser = JSON.parse(userData);
-      console.log('Upload page - User role:', parsedUser.role);
+      console.log('✅ User parsed successfully');
+      console.log('User ID:', parsedUser.id);
+      console.log('User role:', parsedUser.role);
+      console.log('User name:', parsedUser.nama);
 
       if (parsedUser.role !== 'Penghuni') {
-        console.error('User is not Penghuni, redirecting to admin');
+        console.error('❌ User is not Penghuni, redirecting to admin');
         router.push('/admin/dashboard');
         return;
       }
 
+      console.log('✅ Auth check passed, setting user');
       setUser(parsedUser);
     } catch (error) {
-      console.error('Failed to parse user data:', error);
+      console.error('❌ Failed to parse user data:', error);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       router.push('/login');

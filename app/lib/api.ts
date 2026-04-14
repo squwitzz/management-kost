@@ -105,8 +105,12 @@ export class ApiClient {
 
     if (includeAuth) {
       const token = localStorage.getItem('token');
+      console.log('getHeaders - Token from localStorage:', token ? 'EXISTS' : 'NULL');
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
+        console.log('getHeaders - Authorization header set');
+      } else {
+        console.warn('⚠️ getHeaders - No token available, request will be unauthorized');
       }
     }
 
@@ -693,7 +697,18 @@ export class ApiClient {
   }
 
   static async getPayment(paymentId: number) {
-    console.log('Fetching payment:', paymentId);
+    console.log('=== GET PAYMENT API CALL ===');
+    console.log('Payment ID:', paymentId);
+    
+    // Check token before making request
+    const token = localStorage.getItem('token');
+    console.log('Token exists in localStorage:', !!token);
+    if (token) {
+      console.log('Token preview:', token.substring(0, 30) + '...');
+    } else {
+      console.error('❌ NO TOKEN FOUND IN LOCALSTORAGE!');
+    }
+    
     const response = await fetchWithAuth(`${API_URL}/payments/${paymentId}`, {
       headers: this.getHeaders(),
     });
