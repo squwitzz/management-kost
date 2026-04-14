@@ -195,12 +195,9 @@ export default function PaymentsPage() {
             <span className="font-label text-[10px] text-outline font-bold uppercase tracking-wider block mb-1">
               Total Tagihan
             </span>
-            <div className="font-headline text-xl md:text-2xl font-bold text-primary break-words">
-              Rp
-              <div className="inline-block ml-1">
-                {totalUnpaidAmount.toLocaleString('id-ID')}
-              </div>
-            </div>
+            <p className="font-headline text-xl md:text-2xl font-bold text-primary whitespace-nowrap">
+              Rp {totalUnpaidAmount.toLocaleString('id-ID')}
+            </p>
           </div>
           <div className="bg-secondary-container/10 px-6 py-4 rounded-xl">
             <span className="font-label text-[10px] text-secondary font-bold uppercase tracking-wider block mb-1">
