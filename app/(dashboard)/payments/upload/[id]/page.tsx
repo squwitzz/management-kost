@@ -73,38 +73,41 @@ export default function UploadPaymentProofPage() {
     }
     
     try {
+      console.log('=== FETCHING PAYMENT DETAIL ===');
       console.log('Fetching payment with ID:', paymentId);
       console.log('Current user:', user.id, user.nama);
       
       // Check if token exists
       const token = localStorage.getItem('token');
       if (!token) {
+        console.error('❌ No token found');
         throw new Error('No authentication token found. Please login again.');
       }
       
-      console.log('Token exists, calling API...');
+      console.log('✅ Token exists, calling API...');
       const data = await ApiClient.getPayment(parseInt(paymentId));
-      console.log('Payment data received:', data);
+      console.log('✅ Payment data received:', data);
       
       // Backend may return { payment: {...} } or { data: {...} } or direct object
       const paymentData = data.payment || data.data || data;
       
       if (!paymentData) {
-        console.error('Payment data structure:', data);
+        console.error('❌ Payment data structure:', data);
         throw new Error('Payment data not found in response');
       }
       
-      console.log('Payment data parsed:', paymentData);
+      console.log('✅ Payment data parsed:', paymentData);
       
       // Validate payment belongs to current user
       if (paymentData.user_id !== user.id) {
-        console.error('Payment user_id:', paymentData.user_id, 'Current user id:', user.id);
+        console.error('❌ Payment user_id:', paymentData.user_id, 'Current user id:', user.id);
         throw new Error('You are not authorized to access this payment');
       }
       
+      console.log('✅ All checks passed, setting payment');
       setPayment(paymentData);
     } catch (err: any) {
-      console.error('Failed to fetch payment:', err);
+      console.error('❌ Failed to fetch payment:', err);
       console.error('Error details:', {
         message: err.message,
         paymentId,
@@ -112,10 +115,11 @@ export default function UploadPaymentProofPage() {
       });
       
       // Handle specific error cases
-      if (err.message.includes('Unauthorized') || err.message.includes('401')) {
-        await showError('Session Expired', 'Please login again to continue.');
+      if (err.message.includes('Unauthorized') || err.message.includes('401') || err.message.includes('Invalid token')) {
+        await showError('Session Expired', 'Your session has expired. Please login again.');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         router.push('/login');
       } else if (err.message.includes('404') || err.message.includes('not found')) {
         await showError('Payment Not Found', 'The payment you are looking for does not exist.');
