@@ -3,6 +3,8 @@ export { default as AdminBottomNav } from './AdminBottomNav';
 export { default as UserHeader } from './UserHeader';
 export { default as UserBottomNav } from './UserBottomNav';
 export { default as PWAInstallPrompt } from './PWAInstallPrompt';
+export { default as PWAInstallTutorial } from './PWAInstallTutorial';
+export { default as PWAInstallButton } from './PWAInstallButton';
 export { default as NotificationProvider } from './NotificationProvider';
 export { default as RealtimeIndicator } from './RealtimeIndicator';
 export { default as PaymentHistoryTable } from './PaymentHistoryTable';

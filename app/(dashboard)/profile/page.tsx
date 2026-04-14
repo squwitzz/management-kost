@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { UserHeader, UserBottomNav } from '@/app/components';
+import { UserHeader, UserBottomNav, PWAInstallButton } from '@/app/components';
 import { User } from '@/app/types';
 import { ApiClient, getApiUrl, getImageUrl } from '@/app/lib/api';
 
@@ -371,6 +371,9 @@ export default function ProfilePage() {
             Account Actions
           </h3>
           <div className="space-y-1">
+            {/* Install App */}
+            <PWAInstallButton variant="menu-item" />
+
             {/* Change Password */}
             <button
               onClick={() => setShowPasswordModal(true)}

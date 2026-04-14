@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-import { PWAInstallPrompt, NotificationProvider } from "./components";
+import { PWAInstallPrompt, PWAInstallTutorial, NotificationProvider } from "./components";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -53,6 +53,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${manrope.variable} bg-surface text-on-surface font-body antialiased selection:bg-secondary-container selection:text-white`}>
         <NotificationProvider />
         <PWAInstallPrompt />
+        <PWAInstallTutorial />
         {children}
       </body>
     </html>
