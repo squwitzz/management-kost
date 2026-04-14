@@ -152,7 +152,7 @@ export default function DashboardPage() {
                     {outstandingBalance > 0 ? 'Outstanding Balance' : 'Monthly Rate'}
                   </span>
                   <h3 className="text-4xl md:text-6xl font-black font-headline text-primary tracking-tighter tabular-nums">
-                    Rp {animatedAmount.toLocaleString('id-ID')}
+                    Rp {new Intl.NumberFormat('id-ID').format(animatedAmount)}
                   </h3>
                 </div>
                 {outstandingBalance > 0 ? (
