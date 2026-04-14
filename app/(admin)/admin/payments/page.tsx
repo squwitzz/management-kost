@@ -150,9 +150,10 @@ export default function PaymentsPage() {
 
   const finalizedPayments = payments.filter((p: any) => p.is_finalized);
   const pendingVerification = finalizedPayments.filter((p: any) => p.status_bayar === 'Menunggu Verifikasi');
-  const totalAmount = finalizedPayments.reduce((sum, p) => sum + p.jumlah_tagihan, 0);
+  const unpaidPayments = finalizedPayments.filter((p) => p.status_bayar === 'Belum Lunas');
+  const totalUnpaidAmount = unpaidPayments.reduce((sum, p) => sum + p.jumlah_tagihan, 0);
   const paidCount = finalizedPayments.filter((p) => p.status_bayar === 'Lunas').length;
-  const unpaidCount = finalizedPayments.filter((p) => p.status_bayar === 'Belum Lunas').length;
+  const unpaidCount = unpaidPayments.length;
 
   return (
     <div className="bg-surface text-on-surface font-body selection:bg-secondary/20">
@@ -197,7 +198,7 @@ export default function PaymentsPage() {
             <div className="font-headline text-xl md:text-2xl font-bold text-primary break-words">
               Rp
               <div className="inline-block ml-1">
-                {totalAmount.toLocaleString('id-ID')}
+                {totalUnpaidAmount.toLocaleString('id-ID')}
               </div>
             </div>
           </div>
