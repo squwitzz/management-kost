@@ -23,12 +23,13 @@ export interface Payment {
   id: number;
   user_id: number;
   jumlah_tagihan: number;
-  status_bayar: 'Belum Lunas' | 'Menunggu Verifikasi' | 'Lunas';
+  status_bayar: 'Belum Lunas' | 'Belum Bayar' | 'Menunggu Verifikasi' | 'Lunas';
   bulan_dibayar: string;
   bukti_bayar?: string;
   tanggal_upload?: string;
   tanggal_verifikasi?: string;
   user?: User;
+  room?: Room;
 }
 
 export interface FoodItem {
