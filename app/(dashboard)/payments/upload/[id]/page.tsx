@@ -32,40 +32,96 @@ export default function UploadPaymentProofPage() {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
 
+    console.log('Upload page - Token exists:', !!token);
+    console.log('Upload page - User data exists:', !!userData);
+
     if (!token || !userData) {
+      console.error('Missing authentication data');
       router.push('/login');
       return;
     }
 
     const parsedUser = JSON.parse(userData);
+    console.log('Upload page - User role:', parsedUser.role);
 
     if (parsedUser.role !== 'Penghuni') {
+      console.error('User is not Penghuni, redirecting to admin');
       router.push('/admin/dashboard');
       return;
     }
 
     setUser(parsedUser);
-    fetchPaymentDetail();
-  }, [router, paymentId]);
+  }, [router]);
 
   const fetchPaymentDetail = async () => {
+    if (!user) {
+      console.error('User not set yet, skipping fetch');
+      return;
+    }
+    
     try {
+      console.log('Fetching payment with ID:', paymentId);
+      console.log('Current user:', user.id, user.nama);
+      
+      // Check if token exists
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found. Please login again.');
+      }
+      
+      console.log('Token exists, calling API...');
       const data = await ApiClient.getPayment(parseInt(paymentId));
-      console.log('Payment data:', data);
+      console.log('Payment data received:', data);
+      
       // Backend may return { payment: {...} } or { data: {...} } or direct object
       const paymentData = data.payment || data.data || data;
+      
       if (!paymentData) {
-        throw new Error('Payment data not found');
+        console.error('Payment data structure:', data);
+        throw new Error('Payment data not found in response');
       }
+      
+      console.log('Payment data parsed:', paymentData);
+      
+      // Validate payment belongs to current user
+      if (paymentData.user_id !== user.id) {
+        console.error('Payment user_id:', paymentData.user_id, 'Current user id:', user.id);
+        throw new Error('You are not authorized to access this payment');
+      }
+      
       setPayment(paymentData);
     } catch (err: any) {
       console.error('Failed to fetch payment:', err);
-      await showError('Error', err.message || 'Failed to fetch payment details');
-      router.back();
+      console.error('Error details:', {
+        message: err.message,
+        paymentId,
+        userId: user?.id
+      });
+      
+      // Handle specific error cases
+      if (err.message.includes('Unauthorized') || err.message.includes('401')) {
+        await showError('Session Expired', 'Please login again to continue.');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.push('/login');
+      } else if (err.message.includes('404') || err.message.includes('not found')) {
+        await showError('Payment Not Found', 'The payment you are looking for does not exist.');
+        router.push('/payments');
+      } else {
+        await showError('Error', err.message || 'Failed to fetch payment details');
+        router.push('/payments');
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  // Separate useEffect to fetch payment after user is set
+  useEffect(() => {
+    if (user && paymentId) {
+      fetchPaymentDetail();
+    }
+  }, [user, paymentId]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
