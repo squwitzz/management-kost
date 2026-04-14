@@ -34,16 +34,23 @@ export default function ResidentsPage() {
       return;
     }
 
-    const parsedUser = JSON.parse(userData);
+    try {
+      const parsedUser = JSON.parse(userData);
 
-    if (parsedUser.role !== 'Admin') {
-      router.push('/dashboard');
-      return;
+      if (parsedUser.role !== 'Admin') {
+        router.push('/dashboard');
+        return;
+      }
+
+      setUser(parsedUser);
+      fetchResidents();
+      fetchPayments();
+    } catch (error) {
+      console.error('Failed to parse user data:', error);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      router.push('/login');
     }
-
-    setUser(parsedUser);
-    fetchResidents();
-    fetchPayments();
   }, [router]);
 
   const fetchResidents = async () => {

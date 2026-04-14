@@ -36,21 +36,28 @@ export default function UploadPaymentProofPage() {
     console.log('Upload page - User data exists:', !!userData);
 
     if (!token || !userData) {
-      console.error('Missing authentication data');
+      console.error('Missing authentication data - redirecting to login');
       router.push('/login');
       return;
     }
 
-    const parsedUser = JSON.parse(userData);
-    console.log('Upload page - User role:', parsedUser.role);
+    try {
+      const parsedUser = JSON.parse(userData);
+      console.log('Upload page - User role:', parsedUser.role);
 
-    if (parsedUser.role !== 'Penghuni') {
-      console.error('User is not Penghuni, redirecting to admin');
-      router.push('/admin/dashboard');
-      return;
+      if (parsedUser.role !== 'Penghuni') {
+        console.error('User is not Penghuni, redirecting to admin');
+        router.push('/admin/dashboard');
+        return;
+      }
+
+      setUser(parsedUser);
+    } catch (error) {
+      console.error('Failed to parse user data:', error);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      router.push('/login');
     }
-
-    setUser(parsedUser);
   }, [router]);
 
   const fetchPaymentDetail = async () => {

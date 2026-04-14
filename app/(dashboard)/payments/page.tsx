@@ -33,15 +33,22 @@ export default function UserPaymentsPage() {
       return;
     }
 
-    const parsedUser = JSON.parse(userData);
+    try {
+      const parsedUser = JSON.parse(userData);
 
-    if (parsedUser.role !== 'Penghuni') {
-      router.push('/admin/dashboard');
-      return;
+      if (parsedUser.role !== 'Penghuni') {
+        router.push('/admin/dashboard');
+        return;
+      }
+
+      setUser(parsedUser);
+      fetchPayments();
+    } catch (error) {
+      console.error('Failed to parse user data:', error);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      router.push('/login');
     }
-
-    setUser(parsedUser);
-    fetchPayments();
   }, [router]);
 
   const fetchPayments = async () => {
