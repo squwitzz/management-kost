@@ -31,7 +31,6 @@ return [
     ],
 
     'allowed_headers' => [
-        '*',
         'Content-Type',
         'X-Requested-With',
         'Authorization',
@@ -39,6 +38,7 @@ return [
         'Origin',
         'Cache-Control',
         'Pragma',
+        'Expires',
         'ngrok-skip-browser-warning',
     ],
 

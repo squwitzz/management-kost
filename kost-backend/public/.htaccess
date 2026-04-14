@@ -1,3 +1,20 @@
+# CORS: Reflect specific allowed origins
+# (wildcard '*' + credentials 'true' is invalid per CORS spec and causes browser errors)
+<IfModule mod_setenvif.c>
+    SetEnvIf Origin "^https://(management-kost\.vercel\.app|.*\.vercel\.app)$" ALLOWED_ORIGIN=$0
+    SetEnvIf Origin "^http://localhost:(3000|3001|3002)$" ALLOWED_ORIGIN=$0
+    SetEnvIf Origin "^https://mykost-cendana\.xyz$" ALLOWED_ORIGIN=$0
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, ngrok-skip-browser-warning, Accept, Cache-Control, Pragma, Expires"
+    Header always set Access-Control-Max-Age "86400"
+    # Only echo back the origin if it is in the allowed list
+    Header always set Access-Control-Allow-Origin "%{ALLOWED_ORIGIN}e" env=ALLOWED_ORIGIN
+    Header always set Access-Control-Allow-Credentials "true" env=ALLOWED_ORIGIN
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
@@ -9,9 +26,9 @@
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Handle X-XSRF-Token Header
-    RewriteCond %{HTTP:x-xsrf-token} .
-    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+    # Return 200 immediately for OPTIONS preflight requests (no need to hit Laravel)
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule .* - [R=200,L]
 
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
@@ -24,11 +41,3 @@
     RewriteRule ^ index.php [L]
 </IfModule>
 
-# Disable directory browsing
-Options -Indexes
-
-# Prevent access to .env file
-<Files .env>
-    Order allow,deny
-    Deny from all
-</Files>

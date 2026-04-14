@@ -5,6 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { User, Payment } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
+import PaymentHistoryTable from '@/app/components/PaymentHistoryTable';
+import PaymentSummary from '@/app/components/PaymentSummary';
 import { ApiClient, getImageUrl } from '@/app/lib/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -57,8 +59,18 @@ export default function ResidentDetailPage() {
 
   const fetchPayments = async () => {
     try {
+      // Try to fetch user-specific payments first
+      try {
+        const data = await ApiClient.getUserPayments(parseInt(residentId));
+        setPayments(data.payments || data.data || []);
+        return;
+      } catch (userErr) {
+        console.log('User-specific endpoint not available, falling back to all payments');
+      }
+      
+      // Fallback: fetch all payments and filter by user
       const data = await ApiClient.getAdminPayments();
-      const residentPayments = data.payments.filter(
+      const residentPayments = (data.payments || []).filter(
         (p: Payment) => p.user_id === parseInt(residentId)
       );
       setPayments(residentPayments);
@@ -378,84 +390,24 @@ export default function ResidentDetailPage() {
             <div className="space-y-1">
               <h3 className="text-2xl font-extrabold tracking-tight text-primary">Payment History</h3>
               <p className="label-text text-sm text-on-surface-variant/50">
-                Tracking regular billings and service fees
+                All payments by {resident.nama} across all rooms
               </p>
             </div>
             <a className="text-secondary font-bold text-sm hover:underline underline-offset-8" href="#">
               View All Records
             </a>
           </div>
-          <div className="bg-surface-container-lowest rounded-[2rem] overflow-hidden border border-outline-variant/15">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-surface-container-high/50 border-b border-outline-variant/10">
-                  <tr>
-                    <th className="px-8 py-5 label-text text-[11px] uppercase font-bold text-on-surface-variant/50 tracking-widest">
-                      Billing Period
-                    </th>
-                    <th className="px-8 py-5 label-text text-[11px] uppercase font-bold text-on-surface-variant/50 tracking-widest">
-                      Payment Date
-                    </th>
-                    <th className="px-8 py-5 label-text text-[11px] uppercase font-bold text-on-surface-variant/50 tracking-widest">
-                      Amount
-                    </th>
-                    <th className="px-8 py-5 label-text text-[11px] uppercase font-bold text-on-surface-variant/50 tracking-widest text-right">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant/10">
-                  {payments.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-8 py-12 text-center text-on-surface-variant">
-                        No payment history available
-                      </td>
-                    </tr>
-                  ) : (
-                    payments.map((payment) => (
-                      <tr key={payment.id} className="hover:bg-surface-container-low transition-colors group">
-                        <td className="px-8 py-6">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-secondary/5 flex items-center justify-center text-secondary">
-                              <span className="material-symbols-outlined text-xl">payments</span>
-                            </div>
-                            <span className="font-bold text-primary">{payment.bulan_dibayar}</span>
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 label-text text-sm text-on-surface-variant">
-                          {payment.tanggal_upload
-                            ? new Date(payment.tanggal_upload).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                              })
-                            : '-'}
-                        </td>
-                        <td className="px-8 py-6 font-bold text-primary">
-                          Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
-                        </td>
-                        <td className="px-8 py-6 text-right">
-                          {payment.status_bayar === 'Lunas' ? (
-                            <span className="inline-flex items-center px-4 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-extrabold uppercase tracking-widest rounded-full">
-                              Paid
-                            </span>
-                          ) : payment.status_bayar === 'Menunggu Verifikasi' ? (
-                            <span className="inline-flex items-center px-4 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-extrabold uppercase tracking-widest rounded-full">
-                              Pending
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-4 py-1 bg-error-container text-on-error-container text-[10px] font-extrabold uppercase tracking-widest rounded-full">
-                              Unpaid
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          
+          {/* Payment Summary */}
+          <PaymentSummary payments={payments} title={`${resident.nama}'s Payment Summary`} />
+          
+          {/* Payment Table */}
+          <PaymentHistoryTable
+            payments={payments}
+            loading={loading}
+            emptyMessage="No payment history available for this resident"
+            showRoomInfo={true}
+          />
         </section>
       </main>
 

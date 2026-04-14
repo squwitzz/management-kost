@@ -495,6 +495,24 @@ export class ApiClient {
     return response.json();
   }
 
+  static async updateRoom(roomId: number, data: { nomor_kamar?: string; tarif_dasar?: number; status?: string }) {
+    const response = await fetchWithAuth(`${API_URL}/rooms/${roomId}`, {
+      method: 'PUT',
+      headers: {
+        ...this.getHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || error.message || 'Failed to update room');
+    }
+
+    return response.json();
+  }
+
   static async deleteRoom(roomId: number) {
     const response = await fetchWithAuth(`${API_URL}/rooms/${roomId}`, {
       method: 'DELETE',
@@ -720,6 +738,34 @@ export class ApiClient {
       json.payments = json.data || json;
     }
     return json;
+  }
+
+  // Get payment history for a specific room
+  static async getRoomPayments(roomId: number) {
+    const response = await fetchWithAuth(`${API_URL}/rooms/${roomId}/payments`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || 'Failed to fetch room payments');
+    }
+
+    return response.json();
+  }
+
+  // Get payment history for a specific user
+  static async getUserPayments(userId: number) {
+    const response = await fetchWithAuth(`${API_URL}/users/${userId}/payments`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || 'Failed to fetch user payments');
+    }
+
+    return response.json();
   }
 
   static async getPayment(paymentId: number) {

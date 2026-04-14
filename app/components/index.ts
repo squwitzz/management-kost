@@ -5,3 +5,5 @@ export { default as UserBottomNav } from './UserBottomNav';
 export { default as PWAInstallPrompt } from './PWAInstallPrompt';
 export { default as NotificationProvider } from './NotificationProvider';
 export { default as RealtimeIndicator } from './RealtimeIndicator';
+export { default as PaymentHistoryTable } from './PaymentHistoryTable';
+export { default as PaymentSummary } from './PaymentSummary';

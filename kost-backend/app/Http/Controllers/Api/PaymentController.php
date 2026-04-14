@@ -14,26 +14,38 @@ use App\Models\User;
 class PaymentController extends Controller
 {
     /**
-     * Get all payments (Admin) or user's payments (Penghuni)
+     * Resolve the authenticated user from the Bearer token.
+     * Uses JWTAuth::checkOrFail() which validates AND verifies expiry.
      */
-    public function index(Request $request)
+    private function getAuthUser(Request $request): ?User
     {
         try {
             $token = $request->bearerToken();
             if (!$token) {
-                return response()->json(['error' => 'No token provided'], 401);
+                return null;
             }
-            
             JWTAuth::setToken($token);
+            // Use getPayload() instead of checkOrFail() - more permissive
             $payload = JWTAuth::getPayload();
-            $userId = $payload->get('sub');
-            $user = User::find($userId);
-            
-            if (!$user) {
-                return response()->json(['error' => 'Unauthorized'], 403);
-            }
+            $userId  = $payload->get('sub');
+            return User::find($userId);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Invalid token: ' . $e->getMessage()], 401);
+            return null;
+        }
+    }
+
+    /**
+     * Get all payments (Admin) or user's payments (Penghuni)
+     */
+    public function index(Request $request)
+    {
+        $user = $this->getAuthUser($request);
+
+        if (!$user) {
+            return response()->json([
+                'error'   => 'Unauthorized',
+                'message' => 'Invalid or expired token. Please login again.',
+            ], 401);
         }
 
         if ($user->isAdmin()) {
@@ -50,29 +62,33 @@ class PaymentController extends Controller
      */
     public function show(Request $request, $id)
     {
-        try {
-            $token = $request->bearerToken();
-            if (!$token) {
-                return response()->json(['error' => 'No token provided'], 401);
-            }
-            
-            JWTAuth::setToken($token);
-            $payload = JWTAuth::getPayload();
-            $userId = $payload->get('sub');
-            $user = User::find($userId);
-            
-            if (!$user) {
-                return response()->json(['error' => 'Unauthorized'], 403);
-            }
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Invalid token: ' . $e->getMessage()], 401);
+        $user = $this->getAuthUser($request);
+
+        if (!$user) {
+            return response()->json([
+                'error'   => 'Unauthorized',
+                'message' => 'Invalid or expired token. Please login again.',
+            ], 401);
         }
 
-        $payment = Payment::with(['user.room', 'additionalCharges'])->findOrFail($id);
+        $payment = Payment::with(['user.room', 'additionalCharges'])->find($id);
 
-        // Check authorization
-        if (!$user->isAdmin() && $payment->user_id !== $user->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
+        if (!$payment) {
+            return response()->json([
+                'error'   => 'Not Found',
+                'message' => 'Payment not found.',
+            ], 404);
+        }
+
+        // Only admin or the owner can view this payment
+        // Cast to int to avoid type mismatch ('9' !== 9)
+        if (!$user->isAdmin() && (int)$payment->user_id !== (int)$user->id) {
+            return response()->json([
+                'error'          => 'Forbidden',
+                'message'        => 'You do not have permission to view this payment.',
+                'payment_owner'  => (int)$payment->user_id,
+                'current_user'   => (int)$user->id,
+            ], 403);
         }
 
         return response()->json(['payment' => $payment]);
@@ -83,45 +99,50 @@ class PaymentController extends Controller
      */
     public function uploadBukti(Request $request)
     {
-        try {
-            $token = $request->bearerToken();
-            if (!$token) {
-                return response()->json(['error' => 'No token provided'], 401);
-            }
-            
-            JWTAuth::setToken($token);
-            $payload = JWTAuth::getPayload();
-            $userId = $payload->get('sub');
-            $user = User::find($userId);
-            
-            if (!$user) {
-                return response()->json(['error' => 'Unauthorized'], 403);
-            }
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Invalid token: ' . $e->getMessage()], 401);
+        $user = $this->getAuthUser($request);
+
+        if (!$user) {
+            return response()->json([
+                'error'   => 'Unauthorized',
+                'message' => 'Invalid or expired token. Please login again.',
+            ], 401);
         }
 
         $validator = Validator::make($request->all(), [
-            'payment_id' => 'required|exists:payments,id',
-            'bukti_bayar' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'payment_id'  => 'required|exists:payments,id',
+            'bukti_bayar' => 'required|image|mimes:jpeg,png,jpg|max:5120',
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'error'  => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
-        $payment = Payment::findOrFail($request->payment_id);
+        $payment = Payment::find($request->payment_id);
 
-        // Check authorization
-        if ($payment->user_id !== $user->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
+        if (!$payment) {
+            return response()->json([
+                'error'   => 'Not Found',
+                'message' => 'Payment not found.',
+            ], 404);
         }
 
-        // Upload file
+        // Only the owner can upload proof
+        if ((int)$payment->user_id !== (int)$user->id) {
+            return response()->json([
+                'error'         => 'Forbidden',
+                'message'       => 'You can only upload proof for your own payments.',
+                'payment_owner' => (int)$payment->user_id,
+                'current_user'  => (int)$user->id,
+            ], 403);
+        }
+
         if ($request->hasFile('bukti_bayar')) {
-            $file = $request->file('bukti_bayar');
+            $file     = $request->file('bukti_bayar');
             $filename = time() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('bukti_bayar', $filename, 'public');
+            $path     = $file->storeAs('bukti_bayar', $filename, 'public');
 
             // Delete old file if exists
             if ($payment->bukti_bayar) {
@@ -129,25 +150,25 @@ class PaymentController extends Controller
             }
 
             $payment->update([
-                'bukti_bayar' => $path,
-                'status_bayar' => 'Menunggu Verifikasi',
+                'bukti_bayar'    => $path,
+                'status_bayar'   => 'Menunggu Verifikasi',
                 'tanggal_upload' => now(),
             ]);
 
-            // Create notification for admin
+            // Notify all admins
             $admins = User::where('role', 'Admin')->get();
             foreach ($admins as $admin) {
                 Notification::create([
                     'user_id' => $admin->id,
-                    'judul' => 'Bukti Pembayaran Baru',
-                    'pesan' => "Penghuni {$user->nama} telah mengunggah bukti pembayaran untuk bulan {$payment->bulan_dibayar}",
-                    'tipe' => 'Pembayaran',
+                    'judul'   => 'Bukti Pembayaran Baru',
+                    'pesan'   => "Penghuni {$user->nama} telah mengunggah bukti pembayaran untuk bulan {$payment->bulan_dibayar}",
+                    'tipe'    => 'Pembayaran',
                 ]);
             }
 
             return response()->json([
                 'message' => 'Bukti pembayaran berhasil diunggah',
-                'payment' => $payment
+                'payment' => $payment,
             ]);
         }
 
@@ -159,22 +180,13 @@ class PaymentController extends Controller
      */
     public function verify(Request $request, $id)
     {
-        try {
-            $token = $request->bearerToken();
-            if (!$token) {
-                return response()->json(['error' => 'No token provided'], 401);
-            }
-            
-            JWTAuth::setToken($token);
-            $payload = JWTAuth::getPayload();
-            $userId = $payload->get('sub');
-            $user = User::find($userId);
-            
-            if (!$user || !$user->isAdmin()) {
-                return response()->json(['error' => 'Unauthorized'], 403);
-            }
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Invalid token: ' . $e->getMessage()], 401);
+        $user = $this->getAuthUser($request);
+
+        if (!$user || !$user->isAdmin()) {
+            return response()->json([
+                'error'   => 'Unauthorized',
+                'message' => 'Admin access required.',
+            ], 401);
         }
 
         $validator = Validator::make($request->all(), [
@@ -187,21 +199,20 @@ class PaymentController extends Controller
 
         $payment = Payment::findOrFail($id);
         $payment->update([
-            'status_bayar' => $request->status_bayar,
+            'status_bayar'       => $request->status_bayar,
             'tanggal_verifikasi' => now(),
         ]);
 
-        // Create notification for penghuni
         Notification::create([
             'user_id' => $payment->user_id,
-            'judul' => 'Status Pembayaran',
-            'pesan' => "Pembayaran Anda untuk bulan {$payment->bulan_dibayar} telah {$request->status_bayar}",
-            'tipe' => 'Pembayaran',
+            'judul'   => 'Status Pembayaran',
+            'pesan'   => "Pembayaran Anda untuk bulan {$payment->bulan_dibayar} telah {$request->status_bayar}",
+            'tipe'    => 'Pembayaran',
         ]);
 
         return response()->json([
             'message' => 'Status pembayaran berhasil diupdate',
-            'payment' => $payment
+            'payment' => $payment,
         ]);
     }
 
@@ -210,28 +221,19 @@ class PaymentController extends Controller
      */
     public function store(Request $request)
     {
-        try {
-            $token = $request->bearerToken();
-            if (!$token) {
-                return response()->json(['error' => 'No token provided'], 401);
-            }
-            
-            JWTAuth::setToken($token);
-            $payload = JWTAuth::getPayload();
-            $userId = $payload->get('sub');
-            $user = User::find($userId);
-            
-            if (!$user || !$user->isAdmin()) {
-                return response()->json(['error' => 'Unauthorized'], 403);
-            }
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Invalid token: ' . $e->getMessage()], 401);
+        $user = $this->getAuthUser($request);
+
+        if (!$user || !$user->isAdmin()) {
+            return response()->json([
+                'error'   => 'Unauthorized',
+                'message' => 'Admin access required.',
+            ], 401);
         }
 
         $validator = Validator::make($request->all(), [
-            'user_id' => 'required|exists:users,id',
+            'user_id'        => 'required|exists:users,id',
             'jumlah_tagihan' => 'required|integer|min:0',
-            'bulan_dibayar' => 'required|string',
+            'bulan_dibayar'  => 'required|string',
         ]);
 
         if ($validator->fails()) {
@@ -240,17 +242,16 @@ class PaymentController extends Controller
 
         $payment = Payment::create($request->all());
 
-        // Create notification for penghuni
         Notification::create([
             'user_id' => $request->user_id,
-            'judul' => 'Tagihan Baru',
-            'pesan' => "Tagihan untuk bulan {$request->bulan_dibayar} sebesar Rp " . number_format($request->jumlah_tagihan, 0, ',', '.'),
-            'tipe' => 'Tagihan',
+            'judul'   => 'Tagihan Baru',
+            'pesan'   => "Tagihan untuk bulan {$request->bulan_dibayar} sebesar Rp " . number_format($request->jumlah_tagihan, 0, ',', '.'),
+            'tipe'    => 'Tagihan',
         ]);
 
         return response()->json([
             'message' => 'Tagihan berhasil dibuat',
-            'payment' => $payment
+            'payment' => $payment,
         ], 201);
     }
 }

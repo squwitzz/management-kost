@@ -133,8 +133,19 @@ export default function EditPaymentPage() {
 
   const calculateTotal = () => {
     if (!payment) return 0;
-    const additionalTotal = additionalCharges.reduce((sum, c) => sum + (c.amount || 0), 0);
-    return payment.tarif_dasar + additionalTotal - discount;
+    const additionalTotal = additionalCharges.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+    const finalTotal = Number(payment.tarif_dasar) + additionalTotal - Number(discount);
+    
+    // Debug logging
+    console.log('Calculate Total:', {
+      tarif_dasar: payment.tarif_dasar,
+      additionalCharges,
+      additionalTotal,
+      discount,
+      finalTotal
+    });
+    
+    return finalTotal;
   };
 
   const handleSave = async () => {
@@ -341,13 +352,23 @@ export default function EditPaymentPage() {
                         <option value="other">Lainnya</option>
                       </select>
                       
-                      <input
-                        type="number"
-                        className="w-full px-4 py-2 bg-surface-container-highest rounded-lg border-none focus:ring-2 focus:ring-secondary/20 transition-all font-body text-primary text-sm"
-                        placeholder="Jumlah (Rp)"
-                        value={charge.amount || ''}
-                        onChange={(e) => updateCharge(index, 'amount', parseFloat(e.target.value) || 0)}
-                      />
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">
+                          Rp
+                        </span>
+                        <input
+                          type="number"
+                          className="w-full pl-12 pr-4 py-2 bg-surface-container-highest rounded-lg border-none focus:ring-2 focus:ring-secondary/20 transition-all font-body text-primary text-sm"
+                          placeholder="0"
+                          value={charge.amount || ''}
+                          onChange={(e) => updateCharge(index, 'amount', parseFloat(e.target.value) || 0)}
+                        />
+                        {charge.amount > 0 && (
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-xs">
+                            = Rp {Number(charge.amount).toLocaleString('id-ID')}
+                          </span>
+                        )}
+                      </div>
                       
                       <input
                         type="text"
@@ -361,6 +382,7 @@ export default function EditPaymentPage() {
                     <button
                       onClick={() => removeCharge(index)}
                       className="p-2 text-error hover:bg-error/10 rounded-lg transition-all"
+                      title="Hapus biaya"
                     >
                       <span className="material-symbols-outlined text-xl">delete</span>
                     </button>
@@ -374,13 +396,23 @@ export default function EditPaymentPage() {
         {/* Discount */}
         <div className="bg-surface-container-lowest rounded-2xl p-6 md:p-8 mb-6">
           <h3 className="font-headline text-lg font-bold text-primary mb-4">Diskon</h3>
-          <input
-            type="number"
-            className="w-full px-4 py-3 bg-surface-container-highest rounded-xl border-none focus:ring-2 focus:ring-secondary/20 transition-all font-body text-primary"
-            placeholder="Jumlah diskon (Rp)"
-            value={discount || ''}
-            onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-          />
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-semibold">
+              Rp
+            </span>
+            <input
+              type="number"
+              className="w-full pl-12 pr-4 py-3 bg-surface-container-highest rounded-xl border-none focus:ring-2 focus:ring-secondary/20 transition-all font-body text-primary"
+              placeholder="0"
+              value={discount || ''}
+              onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+            />
+            {discount > 0 && (
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">
+                = Rp {Number(discount).toLocaleString('id-ID')}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Notes */}
@@ -397,12 +429,37 @@ export default function EditPaymentPage() {
 
         {/* Total */}
         <div className="bg-gradient-to-br from-secondary to-secondary-container rounded-2xl p-6 md:p-8 mb-6 text-white">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="font-label text-xs uppercase tracking-widest opacity-80 mb-1">Total Tagihan</p>
-              <p className="font-headline text-4xl font-bold">Rp {total.toLocaleString('id-ID')}</p>
+          <div className="space-y-4">
+            {/* Breakdown */}
+            <div className="space-y-2 pb-4 border-b border-white/20">
+              <div className="flex justify-between items-center text-sm opacity-90">
+                <span>Tarif Dasar</span>
+                <span>Rp {payment.tarif_dasar.toLocaleString('id-ID')}</span>
+              </div>
+              {additionalCharges.length > 0 && (
+                <div className="flex justify-between items-center text-sm opacity-90">
+                  <span>Biaya Tambahan ({additionalCharges.length})</span>
+                  <span>
+                    + Rp {additionalCharges.reduce((sum, c) => sum + (Number(c.amount) || 0), 0).toLocaleString('id-ID')}
+                  </span>
+                </div>
+              )}
+              {discount > 0 && (
+                <div className="flex justify-between items-center text-sm opacity-90">
+                  <span>Diskon</span>
+                  <span>- Rp {Number(discount).toLocaleString('id-ID')}</span>
+                </div>
+              )}
             </div>
-            <span className="material-symbols-outlined text-5xl opacity-20">payments</span>
+            
+            {/* Total */}
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="font-label text-xs uppercase tracking-widest opacity-80 mb-1">Total Tagihan</p>
+                <p className="font-headline text-4xl font-bold">Rp {total.toLocaleString('id-ID')}</p>
+              </div>
+              <span className="material-symbols-outlined text-5xl opacity-20">payments</span>
+            </div>
           </div>
         </div>
 

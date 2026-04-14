@@ -25,8 +25,22 @@ export default function RegisterResidentPage() {
     password: '',
     room_id: '',
     foto_penghuni: null as File | null,
-    acceptTerms: false,
   });
+
+  // Function to generate random password
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let password = '';
+    for (let i = 0; i < 6; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+  };
+
+  // Auto-generate password on component mount
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, password: generatePassword() }));
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -93,11 +107,6 @@ export default function RegisterResidentPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (!formData.acceptTerms) {
-      setError('Please accept the terms and conditions');
-      return;
-    }
 
     if (!formData.room_id) {
       setError('Please select a room');
@@ -373,47 +382,56 @@ export default function RegisterResidentPage() {
                 {/* Password */}
                 <div className="flex flex-col gap-2 md:col-span-2">
                   <label className="font-label text-xs font-semibold text-on-surface-variant uppercase tracking-widest">
-                    Password
+                    Password (Auto-Generated)
                   </label>
                   <div className="flex items-center gap-3 bg-surface-container-highest rounded-xl px-4 py-3.5 focus-within:ring-2 focus-within:ring-secondary/20 focus-within:bg-surface-container-lowest transition-all">
                     <input
                       className="flex-1 bg-transparent border-none p-0 focus:ring-0 font-body text-primary placeholder:text-outline/50"
-                      placeholder="••••••••"
+                      placeholder="••••••"
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       required
+                      readOnly
                     />
-                    <span
-                      className="material-symbols-outlined text-outline cursor-pointer hover:text-primary transition-colors"
-                      onClick={() => setShowPassword(!showPassword)}
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, password: generatePassword() })}
+                      className="p-1.5 hover:bg-secondary/10 rounded-lg transition-colors group"
+                      title="Generate new password"
                     >
-                      {showPassword ? 'visibility_off' : 'visibility'}
-                    </span>
+                      <span className="material-symbols-outlined text-secondary text-lg group-hover:rotate-180 transition-transform duration-300">
+                        refresh
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(formData.password);
+                        showSuccess('Copied!', 'Password copied to clipboard');
+                      }}
+                      className="p-1.5 hover:bg-secondary/10 rounded-lg transition-colors"
+                      title="Copy password"
+                    >
+                      <span className="material-symbols-outlined text-outline hover:text-primary transition-colors text-lg">
+                        content_copy
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="p-1.5 hover:bg-secondary/10 rounded-lg transition-colors"
+                      title="Toggle visibility"
+                    >
+                      <span className="material-symbols-outlined text-outline hover:text-primary transition-colors text-lg">
+                        {showPassword ? 'visibility_off' : 'visibility'}
+                      </span>
+                    </button>
                   </div>
+                  <p className="text-xs text-on-surface-variant mt-1">
+                    Password will be automatically generated. Click refresh to generate a new one or copy to save it.
+                  </p>
                 </div>
-              </div>
-
-              {/* Terms Checkbox */}
-              <div className="flex items-center gap-3 pt-4">
-                <input
-                  className="w-5 h-5 rounded-lg border-outline-variant text-secondary focus:ring-secondary"
-                  id="terms"
-                  type="checkbox"
-                  checked={formData.acceptTerms}
-                  onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
-                />
-                <label className="font-body text-sm text-on-surface-variant" htmlFor="terms">
-                  I accept the{' '}
-                  <a className="text-secondary font-semibold hover:underline" href="#">
-                    Terms of Service
-                  </a>{' '}
-                  and acknowledge the{' '}
-                  <a className="text-secondary font-semibold hover:underline" href="#">
-                    Privacy Policy
-                  </a>
-                  .
-                </label>
               </div>
 
               {/* Submit Button */}

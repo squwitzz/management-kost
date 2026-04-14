@@ -24,7 +24,52 @@ export default function GeneratePaymentsPage() {
   const [preview, setPreview] = useState<PreviewItem[]>([]);
   const [periode, setPeriode] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [dueDateInput, setDueDateInput] = useState('');
   const [generateAll, setGenerateAll] = useState(true);
+
+  // Function to calculate due date from periode
+  const calculateDueDate = (periodeStr: string) => {
+    try {
+      // Parse periode format: "Januari 2026" or "2026-01"
+      const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      
+      let year: number;
+      let month: number;
+      
+      if (periodeStr.includes('-')) {
+        // Format: 2026-01
+        const [yearStr, monthStr] = periodeStr.split('-');
+        year = parseInt(yearStr);
+        month = parseInt(monthStr) - 1; // 0-indexed
+      } else {
+        // Format: Januari 2026
+        const parts = periodeStr.trim().split(' ');
+        const monthName = parts[0];
+        const yearStr = parts[1];
+        
+        month = monthNames.findIndex(m => m.toLowerCase() === monthName.toLowerCase());
+        year = parseInt(yearStr);
+      }
+      
+      if (isNaN(year) || month < 0 || month > 11) {
+        return '';
+      }
+      
+      // Calculate next month for due date
+      const dueMonth = month + 1;
+      const dueYear = dueMonth > 11 ? year + 1 : year;
+      const finalMonth = dueMonth > 11 ? 0 : dueMonth;
+      
+      // Set due date to 10th of next month
+      const dueDate = new Date(dueYear, finalMonth, 10);
+      
+      // Format as YYYY-MM-DD for input
+      return dueDate.toISOString().split('T')[0];
+    } catch (err) {
+      console.error('Error calculating due date:', err);
+      return '';
+    }
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -50,7 +95,12 @@ export default function GeneratePaymentsPage() {
     const now = new Date();
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    setPeriode(`${monthNames[nextMonth.getMonth()]} ${nextMonth.getFullYear()}`);
+    const defaultPeriode = `${monthNames[nextMonth.getMonth()]} ${nextMonth.getFullYear()}`;
+    setPeriode(defaultPeriode);
+    
+    // Set default due date
+    const defaultDueDate = calculateDueDate(defaultPeriode);
+    setDueDateInput(defaultDueDate);
     
     setLoading(false);
   }, [router]);
@@ -61,8 +111,13 @@ export default function GeneratePaymentsPage() {
       return;
     }
 
+    if (!dueDateInput) {
+      await showError('Error', 'Silakan pilih tanggal jatuh tempo');
+      return;
+    }
+
     try {
-      console.log('Previewing payments for periode:', periode);
+      console.log('Previewing payments for periode:', periode, 'due_date:', dueDateInput);
       const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/billing/preview`, {
@@ -75,6 +130,7 @@ export default function GeneratePaymentsPage() {
         },
         body: JSON.stringify({
           periode,
+          due_date: dueDateInput,
         }),
         cache: 'no-store' as RequestCache,
         credentials: 'include' as RequestCredentials,
@@ -88,7 +144,7 @@ export default function GeneratePaymentsPage() {
         // Handle various response shapes
         const previewList = data.preview || data.data || data || [];
         setPreview(Array.isArray(previewList) ? previewList : []);
-        setDueDate(data.due_date || '');
+        setDueDate(dueDateInput);
       } else {
         const error = await response.json().catch(() => ({}));
         console.error('Preview error:', error);
@@ -103,6 +159,11 @@ export default function GeneratePaymentsPage() {
   const handleGenerate = async () => {
     if (!periode) {
       await showError('Error', 'Silakan pilih periode');
+      return;
+    }
+
+    if (!dueDateInput) {
+      await showError('Error', 'Silakan pilih tanggal jatuh tempo');
       return;
     }
 
@@ -124,7 +185,7 @@ export default function GeneratePaymentsPage() {
     setGenerating(true);
 
     try {
-      console.log('Generating payments for periode:', periode, 'due_date:', dueDate);
+      console.log('Generating payments for periode:', periode, 'due_date:', dueDateInput);
       const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/billing/generate`, {
@@ -137,7 +198,7 @@ export default function GeneratePaymentsPage() {
         },
         body: JSON.stringify({
           periode,
-          due_date: dueDate,
+          due_date: dueDateInput,
         }),
         cache: 'no-store' as RequestCache,
         credentials: 'include' as RequestCredentials,
@@ -198,9 +259,32 @@ export default function GeneratePaymentsPage() {
                 className="w-full px-4 py-3 bg-surface-container-highest rounded-xl border-none focus:ring-2 focus:ring-secondary/20 transition-all font-body text-primary"
                 placeholder="Januari 2026"
                 value={periode}
-                onChange={(e) => setPeriode(e.target.value)}
+                onChange={(e) => {
+                  const newPeriode = e.target.value;
+                  setPeriode(newPeriode);
+                  // Auto-calculate due date when periode changes
+                  const newDueDate = calculateDueDate(newPeriode);
+                  if (newDueDate) {
+                    setDueDateInput(newDueDate);
+                  }
+                }}
               />
               <p className="text-xs text-on-surface-variant mt-1">Format: Januari 2026 atau 2026-01</p>
+            </div>
+
+            <div>
+              <label className="font-label text-xs font-semibold text-on-surface-variant uppercase tracking-widest block mb-2">
+                Tanggal Jatuh Tempo
+              </label>
+              <input
+                type="date"
+                className="w-full px-4 py-3 bg-surface-container-highest rounded-xl border-none focus:ring-2 focus:ring-secondary/20 transition-all font-body text-primary"
+                value={dueDateInput}
+                onChange={(e) => setDueDateInput(e.target.value)}
+              />
+              <p className="text-xs text-on-surface-variant mt-1">
+                {dueDateInput && `Jatuh tempo: ${new Date(dueDateInput + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+              </p>
             </div>
 
             <div className="flex items-center gap-3">

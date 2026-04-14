@@ -91,9 +91,10 @@ Route::post('/rooms/{id}/remove-resident', [RoomController::class, 'removeReside
 
 // Payment routes (with manual auth in controller)
 Route::get('/payments', [PaymentController::class, 'index']);
-Route::get('/payments/{id}', [PaymentController::class, 'show']);
 Route::post('/payments', [PaymentController::class, 'store']);
+// IMPORTANT: static route 'upload-bukti' must be defined BEFORE the {id} wildcard
 Route::post('/payments/upload-bukti', [PaymentController::class, 'uploadBukti']);
+Route::get('/payments/{id}', [PaymentController::class, 'show']);
 Route::put('/payments/{id}/verify', [PaymentController::class, 'verify']);
 
 // Notification routes (with manual auth in controller)

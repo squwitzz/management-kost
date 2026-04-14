@@ -5,6 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { Room, Payment } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
+import PaymentHistoryTable from '@/app/components/PaymentHistoryTable';
+import PaymentSummary from '@/app/components/PaymentSummary';
 import { ApiClient, getApiUrl, getImageUrl } from '@/app/lib/api';
 import { showSuccess, showError, showConfirm } from '@/app/lib/sweetalert';
 
@@ -17,6 +19,9 @@ export default function RoomDetailPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [showEditPriceModal, setShowEditPriceModal] = useState(false);
+  const [newPrice, setNewPrice] = useState<string>('');
+  const [isUpdatingPrice, setIsUpdatingPrice] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -36,8 +41,14 @@ export default function RoomDetailPage() {
     }
 
     fetchRoomDetail();
-    fetchPayments();
   }, [roomId, router]);
+
+  useEffect(() => {
+    // Fetch payments after room data is loaded
+    if (room) {
+      fetchPayments();
+    }
+  }, [room]);
 
   const fetchRoomDetail = async () => {
     try {
@@ -62,9 +73,26 @@ export default function RoomDetailPage() {
 
   const fetchPayments = async () => {
     try {
+      // Try to fetch room-specific payments first
+      try {
+        const data = await ApiClient.getRoomPayments(parseInt(roomId));
+        setPayments(data.payments || data.data || []);
+        return;
+      } catch (roomErr) {
+        console.log('Room-specific endpoint not available, falling back to all payments');
+      }
+      
+      // Fallback: fetch all payments and filter by room
       const data = await ApiClient.getAdminPayments();
+      const allPayments = data.payments || [];
+      
       // Filter payments for this room's residents
-      setPayments(data.payments || []);
+      const roomPayments = allPayments.filter((p: Payment) => {
+        // Check if payment belongs to any user in this room
+        return room?.users?.some(user => user.id === p.user_id);
+      });
+      
+      setPayments(roomPayments);
     } catch (err) {
       console.error('Failed to fetch payments:', err);
     }
@@ -104,6 +132,44 @@ export default function RoomDetailPage() {
     } catch (err) {
       await showError('Error', 'Gagal mengosongkan kamar');
       console.error('Remove resident error:', err);
+    }
+  };
+
+  const handleEditPrice = () => {
+    setNewPrice(room?.tarif_dasar.toString() || '');
+    setShowEditPriceModal(true);
+  };
+
+  const handleUpdatePrice = async () => {
+    if (!newPrice || isNaN(Number(newPrice)) || Number(newPrice) <= 0) {
+      await showError('Error', 'Masukkan harga yang valid');
+      return;
+    }
+
+    const result = await showConfirm(
+      'Update Harga Kamar?',
+      `Apakah Anda yakin ingin mengubah harga kamar dari Rp ${room?.tarif_dasar.toLocaleString('id-ID')} menjadi Rp ${Number(newPrice).toLocaleString('id-ID')}?`,
+      'Ya, Update'
+    );
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    setIsUpdatingPrice(true);
+    try {
+      await ApiClient.updateRoom(parseInt(roomId), {
+        tarif_dasar: Number(newPrice),
+      });
+
+      await showSuccess('Berhasil!', 'Harga kamar berhasil diupdate!');
+      setShowEditPriceModal(false);
+      fetchRoomDetail(); // Refresh room data
+    } catch (err: any) {
+      console.error('Update price error:', err);
+      await showError('Error', err.message || 'Gagal mengupdate harga kamar');
+    } finally {
+      setIsUpdatingPrice(false);
     }
   };
 
@@ -186,13 +252,24 @@ export default function RoomDetailPage() {
             </div>
             <div className="pt-6 mt-6 border-t border-outline-variant/15 space-y-4">
               <div className="flex justify-between items-end">
-                <div>
+                <div className="flex-1">
                   <p className="text-[10px] font-label font-bold uppercase tracking-wider text-on-surface-variant">
                     Monthly Rate
                   </p>
-                  <p className="text-2xl font-headline font-bold text-on-background">
-                    Rp {room.tarif_dasar.toLocaleString('id-ID')}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-2xl font-headline font-bold text-on-background">
+                      Rp {room.tarif_dasar.toLocaleString('id-ID')}
+                    </p>
+                    <button
+                      onClick={handleEditPrice}
+                      className="p-1.5 hover:bg-primary/10 rounded-lg transition-colors group"
+                      title="Edit harga kamar"
+                    >
+                      <span className="material-symbols-outlined text-primary text-lg group-hover:scale-110 transition-transform">
+                        edit
+                      </span>
+                    </button>
+                  </div>
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] font-label font-bold uppercase tracking-wider text-on-surface-variant">
@@ -217,73 +294,27 @@ export default function RoomDetailPage() {
         {/* Payment History */}
         <section className="space-y-6">
           <div className="flex items-end justify-between">
-            <h3 className="text-2xl font-headline font-extrabold tracking-tight">Payment History</h3>
+            <div>
+              <h3 className="text-2xl font-headline font-extrabold tracking-tight">Payment History</h3>
+              <p className="text-sm text-on-surface-variant mt-1">
+                All payments for Room {room.nomor_kamar}
+              </p>
+            </div>
             <button className="text-secondary font-label font-bold text-xs uppercase tracking-widest hover:underline underline-offset-4">
               View All Statement
             </button>
           </div>
-          <div className="bg-surface-container-low rounded-xl overflow-hidden">
-            {/* Header */}
-            <div className="grid grid-cols-4 px-8 py-4 bg-surface-container-high text-[10px] font-label font-black uppercase tracking-widest text-on-surface-variant opacity-60">
-              <div>Billing Period</div>
-              <div>Transaction Date</div>
-              <div className="text-right">Amount</div>
-              <div className="text-right">Status</div>
-            </div>
-
-            {/* Payment Rows */}
-            <div className="divide-y divide-outline-variant/10">
-              {roomPayments.length === 0 ? (
-                <div className="px-8 py-12 text-center text-on-surface-variant">
-                  <p>No payment history available</p>
-                </div>
-              ) : (
-                roomPayments.map((payment) => (
-                  <div
-                    key={payment.id}
-                    className="grid grid-cols-4 px-8 py-6 items-center hover:bg-surface-container-lowest transition-colors"
-                  >
-                    <div className="font-headline font-bold text-on-background">{payment.bulan_dibayar}</div>
-                    <div className="font-label text-sm text-on-surface-variant">
-                      {payment.tanggal_upload
-                        ? new Date(payment.tanggal_upload).toLocaleDateString('id-ID', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })
-                        : '-'}
-                    </div>
-                    <div className="text-right font-headline font-black text-on-background">
-                      Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
-                    </div>
-                    <div className="flex justify-end">
-                      {payment.status_bayar === 'Lunas' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary-container/10 text-secondary text-[9px] font-bold uppercase tracking-wider border border-secondary/20">
-                          <span
-                            className="material-symbols-outlined text-[12px]"
-                            style={{ fontVariationSettings: "'FILL' 1" }}
-                          >
-                            check_circle
-                          </span>
-                          Paid
-                        </span>
-                      ) : payment.status_bayar === 'Menunggu Verifikasi' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-tertiary-container/10 text-tertiary text-[9px] font-bold uppercase tracking-wider border border-tertiary/20">
-                          <span className="material-symbols-outlined text-[12px]">schedule</span>
-                          Pending
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-error-container/10 text-error text-[9px] font-bold uppercase tracking-wider border border-error/20">
-                          <span className="material-symbols-outlined text-[12px]">cancel</span>
-                          Unpaid
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          
+          {/* Payment Summary */}
+          <PaymentSummary payments={roomPayments} title={`Room ${room.nomor_kamar} Payment Summary`} />
+          
+          {/* Payment Table */}
+          <PaymentHistoryTable
+            payments={roomPayments}
+            loading={loading}
+            emptyMessage="No payment history available for this room"
+            showUserInfo={true}
+          />
         </section>
       </main>
 
@@ -314,6 +345,91 @@ export default function RoomDetailPage() {
                   className="flex-1 px-6 py-3.5 bg-error text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all shadow-lg shadow-error/20"
                 >
                   Ya, Kosongkan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Price Modal */}
+      {showEditPriceModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <div className="bg-surface-container-lowest rounded-3xl p-8 max-w-md w-full shadow-2xl">
+            <div className="flex flex-col space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-primary text-2xl">payments</span>
+                </div>
+                <div>
+                  <h3 className="font-headline text-2xl font-bold text-primary">Edit Harga Kamar</h3>
+                  <p className="text-sm text-on-surface-variant">Room {room?.nomor_kamar}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-label font-bold uppercase tracking-wider text-on-surface-variant">
+                  Harga Saat Ini
+                </label>
+                <div className="px-4 py-3 bg-surface-container-high rounded-xl">
+                  <p className="text-lg font-headline font-bold text-on-surface-variant">
+                    Rp {room?.tarif_dasar.toLocaleString('id-ID')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="newPrice" className="text-xs font-label font-bold uppercase tracking-wider text-on-surface-variant">
+                  Harga Baru
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-semibold">
+                    Rp
+                  </span>
+                  <input
+                    id="newPrice"
+                    type="number"
+                    value={newPrice}
+                    onChange={(e) => setNewPrice(e.target.value)}
+                    placeholder="Masukkan harga baru"
+                    className="w-full pl-12 pr-4 py-3 bg-surface-container-high border-2 border-outline-variant/20 rounded-xl font-headline text-lg font-bold text-on-background placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition-colors"
+                    disabled={isUpdatingPrice}
+                  />
+                </div>
+                {newPrice && !isNaN(Number(newPrice)) && Number(newPrice) > 0 && (
+                  <p className="text-xs text-on-surface-variant pl-1">
+                    = Rp {Number(newPrice).toLocaleString('id-ID')}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    setShowEditPriceModal(false);
+                    setNewPrice('');
+                  }}
+                  className="flex-1 px-6 py-3.5 border border-outline-variant/50 text-primary rounded-xl font-label text-sm font-bold hover:bg-surface-container-low transition-all"
+                  disabled={isUpdatingPrice}
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleUpdatePrice}
+                  className="flex-1 px-6 py-3.5 bg-primary text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  disabled={isUpdatingPrice || !newPrice || isNaN(Number(newPrice)) || Number(newPrice) <= 0}
+                >
+                  {isUpdatingPrice ? (
+                    <>
+                      <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-lg">check</span>
+                      Update Harga
+                    </>
+                  )}
                 </button>
               </div>
             </div>
