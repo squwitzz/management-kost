@@ -51,7 +51,8 @@ const handleUnauthorized = () => {
 };
 
 // Enhanced fetch wrapper with mobile data support
-const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+// skipCredentials: set to true for multipart/form-data uploads to avoid CORS preflight failures
+const fetchWithAuth = async (url: string, options: RequestInit = {}, skipCredentials = false) => {
   // Add headers for mobile data compatibility
   const enhancedOptions: RequestInit = {
     ...options,
@@ -63,8 +64,9 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     },
     // Disable cache for mobile data
     cache: 'no-store' as RequestCache,
-    // Add credentials for CORS
-    credentials: 'include' as RequestCredentials,
+    // Only include credentials for non-multipart requests
+    // credentials:include on multipart upload can cause CORS preflight to fail
+    ...(skipCredentials ? {} : { credentials: 'include' as RequestCredentials }),
   };
 
   try {
@@ -198,19 +200,43 @@ export class ApiClient {
     formData.append('bukti_bayar', file);
 
     const token = localStorage.getItem('token');
-    const response = await fetchWithAuth(`${API_URL}/payments/upload-bukti`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true', // Bypass Ngrok warning for mobile
+    if (!token) {
+      throw new Error('No authentication token found. Please login again.');
+    }
+
+    // Use skipCredentials=true for multipart upload to prevent CORS preflight failure
+    // when cross-origin (Vercel -> cPanel). Token is sent manually via Authorization header.
+    const response = await fetchWithAuth(
+      `${getApiUrl()}/payments/upload-bukti`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+          // NOTE: Do NOT set Content-Type here — browser must auto-set
+          // multipart/form-data with correct boundary
+        },
+        body: formData,
       },
-      body: formData,
-    });
+      true // skipCredentials — avoids CORS issue with cross-origin multipart upload
+    );
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Upload gagal');
+      let errorMessage = 'Upload gagal';
+      try {
+        const error = await response.json();
+        // Handle Laravel validation errors
+        if (error.errors) {
+          const firstKey = Object.keys(error.errors)[0];
+          errorMessage = error.errors[firstKey]?.[0] || errorMessage;
+        } else {
+          errorMessage = error.error || error.message || errorMessage;
+        }
+      } catch (e) {
+        errorMessage = `Upload gagal (HTTP ${response.status})`;
+      }
+      throw new Error(errorMessage);
     }
 
     return response.json();
