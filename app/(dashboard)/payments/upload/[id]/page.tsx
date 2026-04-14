@@ -106,7 +106,7 @@ export default function UploadPaymentProofPage() {
       console.log('Match?', paymentData.user_id == user.id);
       
       // Validate payment belongs to current user (use == for loose comparison to handle type mismatch)
-      if (parseInt(paymentData.user_id) !== parseInt(user.id)) {
+      if (Number(paymentData.user_id) !== user.id) {
         console.error('❌ AUTHORIZATION FAILED');
         console.error('Payment belongs to user:', paymentData.user_id);
         console.error('But current user is:', user.id);
