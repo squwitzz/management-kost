@@ -22,6 +22,11 @@ export default function UserPaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Format number with dots as thousand separator
+  const formatRupiah = (amount: number): string => {
+    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -131,7 +136,7 @@ export default function UserPaymentsPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-headline text-xl font-bold text-primary whitespace-nowrap">
-                        Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
+                        Rp {formatRupiah(payment.jumlah_tagihan)}
                       </p>
                       <span className="inline-block px-3 py-1 bg-error-container text-on-error-container text-[10px] font-label font-bold rounded-full uppercase mt-1">
                         Unpaid
@@ -166,7 +171,7 @@ export default function UserPaymentsPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-headline text-xl font-bold text-primary whitespace-nowrap">
-                        Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
+                        Rp {formatRupiah(payment.jumlah_tagihan)}
                       </p>
                       <span className="inline-block px-3 py-1 bg-tertiary-container/10 text-tertiary text-[10px] font-label font-bold rounded-full uppercase mt-1">
                         Pending
@@ -198,7 +203,7 @@ export default function UserPaymentsPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-headline text-xl font-bold text-primary whitespace-nowrap">
-                        Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
+                        Rp {formatRupiah(payment.jumlah_tagihan)}
                       </p>
                       <span className="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-label font-bold rounded-full uppercase mt-1">
                         Paid

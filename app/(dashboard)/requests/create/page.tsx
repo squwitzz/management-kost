@@ -185,55 +185,6 @@ export default function CreateRequestPage() {
             </div>
           </div>
 
-          {/* Right: Info (35%) */}
-          <div className="lg:col-span-4 space-y-8">
-            {/* Status Card */}
-            <div className="bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/10">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-1.5 h-10 bg-secondary rounded-full"></div>
-                <h3 className="font-headline text-xl font-bold">Facility Insights</h3>
-              </div>
-              <div className="space-y-6">
-                <div className="p-4 bg-surface-container rounded-lg">
-                  <div className="flex justify-between items-end mb-2">
-                    <span className="font-label text-[10px] uppercase font-bold text-on-surface-variant">
-                      Active Technicians
-                    </span>
-                    <span className="font-headline text-xl font-bold text-secondary">12</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
-                    <div className="h-full bg-secondary w-3/4 rounded-full"></div>
-                  </div>
-                </div>
-                <div className="p-4 bg-surface-container rounded-lg">
-                  <div className="flex justify-between items-end mb-2">
-                    <span className="font-label text-[10px] uppercase font-bold text-on-surface-variant">
-                      Avg. Response Time
-                    </span>
-                    <span className="font-headline text-xl font-bold text-primary">2.4h</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
-                    <div className="h-full bg-primary w-1/4 rounded-full"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Assistance Card */}
-            <div className="bg-secondary text-on-secondary p-8 rounded-xl shadow-lg shadow-secondary/10">
-              <p className="font-headline text-lg font-bold mb-2">Urgent Issue?</p>
-              <p className="font-body text-sm opacity-80 mb-6">
-                For gas leaks or major flooding, please call our 24/7 emergency line immediately.
-              </p>
-              <a
-                className="inline-flex items-center gap-3 font-label text-xs font-black uppercase tracking-widest bg-on-secondary text-secondary px-6 py-3 rounded-full"
-                href="tel:1800LODGE"
-              >
-                <span className="material-symbols-outlined text-sm">call</span>
-                Call Concierge
-              </a>
-            </div>
-          </div>
         </div>
       </main>
 

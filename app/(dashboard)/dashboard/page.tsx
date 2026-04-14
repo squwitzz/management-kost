@@ -57,6 +57,11 @@ export default function DashboardPage() {
   const [maintenanceRequests, setMaintenanceRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Format number with dots as thousand separator
+  const formatRupiah = (amount: number): string => {
+    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
   // Calculate amounts first (before any conditional returns)
   const latestPayment = payments.length > 0 ? payments[0] : null;
   const isPaid = latestPayment?.status_bayar === 'Lunas';
@@ -151,7 +156,7 @@ export default function DashboardPage() {
                     {outstandingBalance > 0 ? 'Outstanding Balance' : 'Monthly Rate'}
                   </span>
                   <h3 className="text-4xl md:text-6xl font-black font-headline text-primary tracking-tighter tabular-nums whitespace-nowrap">
-                    Rp {animatedAmount.toLocaleString('id-ID')}
+                    Rp {formatRupiah(animatedAmount)}
                   </h3>
                 </div>
                 {outstandingBalance > 0 ? (
@@ -319,7 +324,7 @@ export default function DashboardPage() {
                               : 'Payment Due'}
                           </p>
                           <p className="text-[10px] md:text-xs text-on-surface-variant font-label mt-0.5 md:mt-1 truncate">
-                            {payment.bulan_dibayar} - Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
+                            {payment.bulan_dibayar} - Rp {formatRupiah(payment.jumlah_tagihan)}
                           </p>
                         </div>
                       </div>
