@@ -130,8 +130,8 @@ export default function UserPaymentsPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-headline text-xl font-bold text-primary">
-                        Rp {new Intl.NumberFormat('id-ID').format(payment.jumlah_tagihan)}
+                      <p className="font-headline text-xl font-bold text-primary whitespace-nowrap">
+                        Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
                       </p>
                       <span className="inline-block px-3 py-1 bg-error-container text-on-error-container text-[10px] font-label font-bold rounded-full uppercase mt-1">
                         Unpaid
@@ -165,8 +165,8 @@ export default function UserPaymentsPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-headline text-xl font-bold text-primary">
-                        Rp {new Intl.NumberFormat('id-ID').format(payment.jumlah_tagihan)}
+                      <p className="font-headline text-xl font-bold text-primary whitespace-nowrap">
+                        Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
                       </p>
                       <span className="inline-block px-3 py-1 bg-tertiary-container/10 text-tertiary text-[10px] font-label font-bold rounded-full uppercase mt-1">
                         Pending
@@ -197,8 +197,8 @@ export default function UserPaymentsPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-headline text-xl font-bold text-primary">
-                        Rp {new Intl.NumberFormat('id-ID').format(payment.jumlah_tagihan)}
+                      <p className="font-headline text-xl font-bold text-primary whitespace-nowrap">
+                        Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
                       </p>
                       <span className="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-label font-bold rounded-full uppercase mt-1">
                         Paid

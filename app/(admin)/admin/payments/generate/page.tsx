@@ -117,7 +117,6 @@ export default function GeneratePaymentsPage() {
     }
 
     try {
-      console.log('Previewing payments for periode:', periode, 'due_date:', dueDateInput);
       const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/billing/preview`, {
@@ -185,7 +184,6 @@ export default function GeneratePaymentsPage() {
     setGenerating(true);
 
     try {
-      console.log('Generating payments for periode:', periode, 'due_date:', dueDateInput);
       const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/billing/generate`, {
@@ -332,8 +330,8 @@ export default function GeneratePaymentsPage() {
                         <p className="font-headline font-bold text-primary">{item.user_name}</p>
                         <p className="font-label text-xs text-on-surface-variant">Room {item.room_number}</p>
                       </div>
-                      <p className="font-headline font-bold text-primary">
-                        Rp {new Intl.NumberFormat('id-ID').format(item.jumlah_tagihan)}
+                      <p className="font-headline font-bold text-primary whitespace-nowrap">
+                        Rp {item.jumlah_tagihan.toLocaleString('id-ID')}
                       </p>
                     </div>
                   ))}
@@ -343,8 +341,8 @@ export default function GeneratePaymentsPage() {
               <div className="flex items-center justify-between p-4 bg-secondary-container/10 rounded-xl">
                 <div>
                   <p className="font-label text-xs text-secondary uppercase tracking-wider">Total Tagihan</p>
-                  <p className="font-headline text-2xl font-bold text-secondary">
-                    Rp {new Intl.NumberFormat('id-ID').format(totalAmount)}
+                  <p className="font-headline text-2xl font-bold text-secondary whitespace-nowrap">
+                    Rp {totalAmount.toLocaleString('id-ID')}
                   </p>
                 </div>
                 <div className="text-right">

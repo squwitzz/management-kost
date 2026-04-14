@@ -194,9 +194,12 @@ export default function PaymentsPage() {
             <span className="font-label text-[10px] text-outline font-bold uppercase tracking-wider block mb-1">
               Total Tagihan
             </span>
-            <span className="font-headline text-2xl font-bold text-primary">
-              Rp {new Intl.NumberFormat('id-ID').format(totalAmount)}
-            </span>
+            <div className="font-headline text-xl md:text-2xl font-bold text-primary break-words">
+              Rp
+              <div className="inline-block ml-1">
+                {totalAmount.toLocaleString('id-ID')}
+              </div>
+            </div>
           </div>
           <div className="bg-secondary-container/10 px-6 py-4 rounded-xl">
             <span className="font-label text-[10px] text-secondary font-bold uppercase tracking-wider block mb-1">
@@ -314,8 +317,8 @@ export default function PaymentsPage() {
                     </div>
                     <div className="flex items-center gap-4 flex-shrink-0">
                       <div className="text-right hidden md:block">
-                        <p className="font-headline font-bold text-primary">
-                          Rp {new Intl.NumberFormat('id-ID').format(payment.jumlah_tagihan)}
+                        <p className="font-headline font-bold text-primary whitespace-nowrap">
+                          Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
                         </p>
                         <p className="font-label text-xs text-on-surface-variant">
                           Due: {payment.due_date ? new Date(payment.due_date).toLocaleDateString('id-ID') : '-'}
@@ -401,8 +404,8 @@ export default function PaymentsPage() {
                       onClick={() => router.push(`/admin/payments/${payment.id}/edit`)}
                     >
                       <div className="text-right hidden md:block">
-                        <p className="font-headline font-bold text-primary">
-                          Rp {new Intl.NumberFormat('id-ID').format(payment.jumlah_tagihan)}
+                        <p className="font-headline font-bold text-primary whitespace-nowrap">
+                          Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
                         </p>
                         <p className="font-label text-xs text-tertiary">Draft - Not sent</p>
                       </div>

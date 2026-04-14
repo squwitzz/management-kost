@@ -84,7 +84,6 @@ export default function DashboardPage() {
 
   const fetchRoomData = async (roomId: number | undefined) => {
     if (!roomId) {
-      console.log('No room_id found for user');
       return;
     }
     
@@ -151,8 +150,8 @@ export default function DashboardPage() {
                   <span className="font-label text-[9px] md:text-[10px] uppercase tracking-widest text-outline mb-1 block">
                     {outstandingBalance > 0 ? 'Outstanding Balance' : 'Monthly Rate'}
                   </span>
-                  <h3 className="text-4xl md:text-6xl font-black font-headline text-primary tracking-tighter tabular-nums">
-                    Rp {new Intl.NumberFormat('id-ID').format(animatedAmount)}
+                  <h3 className="text-4xl md:text-6xl font-black font-headline text-primary tracking-tighter tabular-nums whitespace-nowrap">
+                    Rp {animatedAmount.toLocaleString('id-ID')}
                   </h3>
                 </div>
                 {outstandingBalance > 0 ? (

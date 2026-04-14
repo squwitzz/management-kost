@@ -130,8 +130,8 @@ export default function AdminDashboard() {
               Total Revenue (Paid)
             </span>
             <div className="mt-2 flex flex-col md:flex-row md:items-baseline md:gap-4">
-              <h2 className="font-headline font-extrabold text-[3.5rem] md:text-[4rem] leading-none tracking-tighter text-primary">
-                Rp {new Intl.NumberFormat('id-ID').format(stats.totalRevenue)}
+              <h2 className="font-headline font-extrabold text-[3.5rem] md:text-[4rem] leading-none tracking-tighter text-primary whitespace-nowrap">
+                Rp {stats.totalRevenue.toLocaleString('id-ID')}
               </h2>
             </div>
           </div>
@@ -267,8 +267,8 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="font-headline font-extrabold text-primary md:text-lg">
-                      Rp {new Intl.NumberFormat('id-ID').format(activity.amount)}
+                    <span className="font-headline font-extrabold text-primary md:text-lg whitespace-nowrap">
+                      Rp {activity.amount.toLocaleString('id-ID')}
                     </span>
                     <div className="flex items-center justify-end gap-1.5 mt-0.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-secondary"></div>
