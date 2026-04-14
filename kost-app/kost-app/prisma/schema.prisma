@@ -1,0 +1,155 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Resident {
+  id           Int           @id @default(autoincrement())
+  name         String
+  email        String        @unique
+  phone        String?
+  profilePhoto String?       @map("profile_photo")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  rooms        RoomAssignment[]
+  payments     Payment[]
+  maintenances Maintenance[]
+  foodOrders   FoodOrder[]
+
+  @@map("residents")
+}
+
+model Room {
+  id           Int             @id @default(autoincrement())
+  unitNumber   String          @unique @map("unit_number")
+  type         String          // e.g. "Standard Suite", "Deluxe", etc.
+  floor        Int?
+  monthlyRate  Decimal         @map("monthly_rate") @db.Decimal(12, 2)
+  status       RoomStatus      @default(AVAILABLE)
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  assignments  RoomAssignment[]
+
+  @@map("rooms")
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+}
+
+model RoomAssignment {
+  id         Int       @id @default(autoincrement())
+  residentId Int       @map("resident_id")
+  roomId     Int       @map("room_id")
+  startDate  DateTime  @map("start_date")
+  endDate    DateTime? @map("end_date")
+  isActive   Boolean   @default(true) @map("is_active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  resident   Resident  @relation(fields: [residentId], references: [id])
+  room       Room      @relation(fields: [roomId], references: [id])
+
+  @@map("room_assignments")
+}
+
+model Payment {
+  id          Int           @id @default(autoincrement())
+  residentId  Int           @map("resident_id")
+  amount      Decimal       @db.Decimal(12, 2)
+  type        PaymentType   @default(RENT)
+  status      PaymentStatus @default(PENDING)
+  description String?
+  dueDate     DateTime?     @map("due_date")
+  paidAt      DateTime?     @map("paid_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  resident    Resident      @relation(fields: [residentId], references: [id])
+
+  @@map("payments")
+}
+
+enum PaymentType {
+  RENT
+  FOOD
+  MAINTENANCE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model Maintenance {
+  id          Int               @id @default(autoincrement())
+  residentId  Int               @map("resident_id")
+  title       String
+  description String?           @db.Text
+  status      MaintenanceStatus @default(OPEN)
+  resolvedAt  DateTime?         @map("resolved_at")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  resident    Resident          @relation(fields: [residentId], references: [id])
+
+  @@map("maintenances")
+}
+
+enum MaintenanceStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+}
+
+model FoodOrder {
+  id         Int             @id @default(autoincrement())
+  residentId Int             @map("resident_id")
+  orderRef   String          @unique @map("order_ref")
+  items      String          @db.Text
+  total      Decimal         @db.Decimal(12, 2)
+  status     FoodOrderStatus @default(PENDING)
+  createdAt  DateTime        @default(now()) @map("created_at")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+
+  resident   Resident        @relation(fields: [residentId], references: [id])
+
+  @@map("food_orders")
+}
+
+enum FoodOrderStatus {
+  PENDING
+  PREPARING
+  DELIVERED
+  CANCELLED
+}
+
+model Activity {
+  id          Int          @id @default(autoincrement())
+  residentId  Int          @map("resident_id")
+  type        ActivityType
+  title       String
+  description String?
+  date        DateTime     @default(now())
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  @@map("activities")
+}
+
+enum ActivityType {
+  PAYMENT
+  MAINTENANCE
+  FOOD_ORDER
+  OTHER
+}

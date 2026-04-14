@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { User } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
-import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { ApiClient, getApiUrl, getImageUrl } from '@/app/lib/api';
 import { showSuccess, showError, showConfirm } from '@/app/lib/sweetalert';
 
 interface PaymentDetail {
@@ -340,7 +340,7 @@ export default function PaymentDetailPage() {
               onClick={() => setShowImageModal(true)}
             >
               <img
-                src={`${getBaseUrl()}/storage/${payment.bukti_bayar}`}
+                src={getImageUrl(payment.bukti_bayar)}
                 alt="Bukti Pembayaran"
                 className="w-full rounded-xl shadow-lg"
               />
@@ -433,7 +433,7 @@ export default function PaymentDetailPage() {
               <span className="material-symbols-outlined text-4xl">close</span>
             </button>
             <img
-              src={`${getBaseUrl()}/storage/${payment.bukti_bayar}`}
+              src={getImageUrl(payment.bukti_bayar)}
               alt="Bukti Pembayaran"
               className="w-full h-auto rounded-xl"
               onClick={(e) => e.stopPropagation()}

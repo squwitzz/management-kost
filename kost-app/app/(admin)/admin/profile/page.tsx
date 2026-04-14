@@ -52,19 +52,14 @@ export default function AdminProfilePage() {
     setMessage(null);
 
     try {
-      console.log('Updating profile with data:', profileForm);
       const data = await ApiClient.updateProfile(profileForm);
-      console.log('Profile update response:', data);
 
       // Update localStorage with new user data
-      if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
-      }
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
       
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
     } catch (error: any) {
-      console.error('Profile update error:', error);
       setMessage({ type: 'error', text: error.message || 'Failed to update profile' });
     } finally {
       setLoading(false);

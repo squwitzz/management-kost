@@ -83,13 +83,12 @@ export default function AdminDashboard() {
 
       setStats({
         totalRevenue,
-          occupancyRate,
-          occupiedRooms,
-          totalRooms,
-          pendingPayments,
-          recentActivities,
-        });
-      }
+        occupancyRate,
+        occupiedRooms,
+        totalRooms,
+        pendingPayments,
+        recentActivities,
+      });
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
     } finally {

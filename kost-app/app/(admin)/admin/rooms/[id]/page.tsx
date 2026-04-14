@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Room, Payment } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
-import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { ApiClient, getApiUrl, getImageUrl } from '@/app/lib/api';
 import { showSuccess, showError, showConfirm } from '@/app/lib/sweetalert';
 
 export default function RoomDetailPage() {
@@ -44,16 +44,17 @@ export default function RoomDetailPage() {
       console.log('Fetching room detail for ID:', roomId);
       const data = await ApiClient.getRoom(parseInt(roomId));
       console.log('Room data:', data);
-      if (data.room) {
-        setRoom(data.room);
+      // Handle various API response shapes
+      const roomData = data.room || data.data || data;
+      if (roomData && roomData.id) {
+        setRoom(roomData);
       } else {
-        await showError('Error', 'Room not found');
-        router.push('/admin/rooms');
+        console.error('Room not found in response:', data);
+        await showError('Error', 'Room tidak ditemukan');
       }
     } catch (err: any) {
       console.error('Failed to fetch room:', err);
       await showError('Error', err.message || 'Failed to load room details');
-      router.push('/admin/rooms');
     } finally {
       setLoading(false);
     }
@@ -72,7 +73,7 @@ export default function RoomDetailPage() {
   const handleRemoveResident = async () => {
     const result = await showConfirm(
       'Kosongkan Kamar?',
-      `Apakah Anda yakin ingin mengosongkan kamar ini dari penghuni ${resident?.nama}? Penghuni akan dihapus dari kamar ini dan status kamar akan menjadi "Kosong".`,
+      `Apakah Anda yakin ingin mengosongkan kamar ini? Penghuni ${resident?.nama} hanya akan dilepas dari unit ini, namun data akun penghuni TIDAK akan dihapus.`,
       'Ya, Kosongkan'
     );
 
@@ -81,9 +82,8 @@ export default function RoomDetailPage() {
     }
 
     try {
-      const API_URL = getApiUrl();
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/rooms/${roomId}/remove-resident`, {
+      const response = await fetch(`${getApiUrl()}/rooms/${roomId}/remove-resident`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -141,7 +141,7 @@ export default function RoomDetailPage() {
                 className="w-32 h-32 rounded-full object-cover"
                 src={
                   resident?.foto_penghuni
-                    ? `${getBaseUrl()}/storage/${resident.foto_penghuni}`
+                    ? getImageUrl(resident.foto_penghuni)
                     : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUe_fqSs_mEXImBn1Td_tce-oeWCz2RBOuzeAboY3q2ZSX3x1uhrrYkxyULXIOX-K8gQ7Gwf_Fewm-Dv05BdoAqlylRvBeuzeOje2aH2__JR3wjlyUbdLvM57eBZW52YNy7NHprIBSPZdV0nAq9pgCb4ALVjfkw_NqusJdPlOsrujJK-1utnB_yWit4dwKrwmjHjTlCZQAjqxk3wcTGByTJZPI6r1j8XXvOCoUDWUFX7jxjK0OPESkDug1XkKIWMg9cYssyxUnL40'
                 }
               />
@@ -300,8 +300,7 @@ export default function RoomDetailPage() {
               <h3 className="font-headline text-2xl font-bold text-primary">Kosongkan Kamar?</h3>
               <p className="text-on-surface-variant text-sm">
                 Apakah Anda yakin ingin mengosongkan kamar ini dari penghuni{' '}
-                <strong>{resident?.nama}</strong>? Penghuni akan dihapus dari kamar ini dan status kamar akan
-                menjadi "Kosong".
+                <strong>{resident?.nama}</strong>? Penghuni hanya akan dilepas dari unit ini, namun <strong>data akun penghuni TIDAK akan dihapus</strong>.
               </p>
               <div className="flex gap-3 w-full pt-4">
                 <button

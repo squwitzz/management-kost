@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserHeader, UserBottomNav } from '@/app/components';
 import { User } from '@/app/types';
-import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { ApiClient, getApiUrl, getImageUrl } from '@/app/lib/api';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -210,14 +210,14 @@ export default function ProfilePage() {
         {/* Hero Profile Section */}
         <section className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-8 mb-12 items-end">
           <div className="relative group">
-            <div className="w-48 h-48 rounded-full overflow-hidden bg-surface-container-highest border-4 border-surface-container-lowest">
+            <div className="w-48 h-48 rounded-2xl overflow-hidden bg-surface-container-highest border-4 border-surface-container-lowest shadow-lg">
               <img
                 alt="Profile"
                 className="w-full h-full object-cover"
                 src={
                   preview ||
                   (user?.foto_penghuni
-                    ? `${getBaseUrl()}/storage/${user.foto_penghuni}`
+                    ? getImageUrl(user.foto_penghuni)
                     : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUe_fqSs_mEXImBn1Td_tce-oeWCz2RBOuzeAboY3q2ZSX3x1uhrrYkxyULXIOX-K8gQ7Gwf_Fewm-Dv05BdoAqlylRvBeuzeOje2aH2__JR3wjlyUbdLvM57eBZW52YNy7NHprIBSPZdV0nAq9pgCb4ALVjfkw_NqusJdPlOsrujJK-1utnB_yWit4dwKrwmjHjTlCZQAjqxk3wcTGByTJZPI6r1j8XXvOCoUDWUFX7jxjK0OPESkDug1XkKIWMg9cYssyxUnL40')
                 }
               />

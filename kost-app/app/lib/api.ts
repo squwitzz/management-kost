@@ -7,7 +7,7 @@ export const getApiUrl = () => {
   if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
     return 'https://mykost-cendana.xyz/api';
   }
-  
+
   // Use environment variable or fallback
   return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 };
@@ -16,6 +16,25 @@ export const getApiUrl = () => {
 export const getBaseUrl = () => {
   const apiUrl = getApiUrl();
   return apiUrl.replace('/api', '');
+};
+
+// Safe image retrieval that bypasses cPanel Nginx static block
+export const getImageUrl = (path: string | undefined | null) => {
+  if (!path) return 'https://via.placeholder.com/150';
+  
+  // If it's already a full URL, return it
+  if (path.startsWith('http')) return path;
+  
+  // Remove common prefixes if they exist
+  let cleanPath = path;
+  if (cleanPath.startsWith('storage/')) {
+    cleanPath = cleanPath.replace('storage/', '');
+  }
+  if (cleanPath.startsWith('public/')) {
+    cleanPath = cleanPath.replace('public/', '');
+  }
+  
+  return `${getBaseUrl()}/image?file=${cleanPath}`;
 };
 
 const API_URL = getApiUrl();
@@ -50,7 +69,7 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 
   try {
     const response = await fetch(url, enhancedOptions);
-    
+
     // Check for 401 Unauthorized
     if (response.status === 401) {
       try {
@@ -59,11 +78,11 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
       } catch (e) {
         // Ignore JSON parse errors
       }
-      
+
       handleUnauthorized();
       throw new Error('Session expired. Please login again.');
     }
-    
+
     return response;
   } catch (error) {
     // Enhanced error handling for mobile data
@@ -269,21 +288,47 @@ export class ApiClient {
   }
 
   static async updateProfile(data: { nama?: string; email?: string; nomor_telepon?: string }) {
-    const response = await fetchWithAuth(`${API_URL}/profile/update`, {
-      method: 'POST',
-      headers: {
-        ...this.getHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
+    const endpoints = [
+      { url: `${API_URL}/profile/update`, method: 'POST' },
+      { url: `${API_URL}/profile`, method: 'PUT' },
+      { url: `${API_URL}/profile`, method: 'POST' },
+    ];
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to update profile');
+    let lastError: Error = new Error('Failed to update profile');
+
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetchWithAuth(endpoint.url, {
+          method: endpoint.method,
+          headers: {
+            ...this.getHeaders(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (response.ok) {
+          return response.json();
+        }
+
+        const errorBody = await response.json().catch(() => ({}));
+        lastError = new Error(
+          errorBody.message || errorBody.error || `HTTP ${response.status}`
+        );
+
+        // If 404, try next endpoint; otherwise break
+        if (response.status !== 404 && response.status !== 405) {
+          throw lastError;
+        }
+      } catch (err: any) {
+        if (err.message && !err.message.includes('HTTP 404') && !err.message.includes('HTTP 405')) {
+          throw err;
+        }
+        lastError = err;
+      }
     }
 
-    return response.json();
+    throw lastError;
   }
 
   static async changePassword(data: { current_password: string; new_password: string; new_password_confirmation: string }) {
@@ -358,11 +403,16 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({}));
       throw new Error(error.message || 'Failed to fetch rooms');
     }
 
-    return response.json();
+    const json = await response.json();
+    // Normalize: ensure `rooms` key exists
+    if (!json.rooms && (json.data || Array.isArray(json))) {
+      json.rooms = json.data || json;
+    }
+    return json;
   }
 
   static async getRoom(roomId: number) {
@@ -417,11 +467,16 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({}));
       throw new Error(error.message || 'Failed to fetch rules');
     }
 
-    return response.json();
+    const json = await response.json();
+    // Normalize: ensure `peraturan` key exists
+    if (!json.peraturan && (json.data || Array.isArray(json))) {
+      json.peraturan = json.data || json;
+    }
+    return json;
   }
 
   static async createRule(data: { judul: string; deskripsi: string }) {
@@ -606,11 +661,16 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({}));
       throw new Error(error.message || 'Failed to fetch payments');
     }
 
-    return response.json();
+    const json = await response.json();
+    // Normalize: ensure `payments` key exists
+    if (!json.payments && (json.data || Array.isArray(json))) {
+      json.payments = json.data || json;
+    }
+    return json;
   }
 
   static async getPayment(paymentId: number) {

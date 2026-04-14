@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { AdminHeader, AdminBottomNav } from '@/app/components';
 import { MaintenanceRequest } from '@/app/types';
-import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
+import { ApiClient, getImageUrl } from '@/app/lib/api';
 import { showSuccess, showError } from '@/app/lib/sweetalert';
 
 export default function RequestDetailPage() {
@@ -125,7 +125,7 @@ export default function RequestDetailPage() {
                       onClick={() => setShowImageModal(true)}
                     >
                       <img
-                        src={`${getBaseUrl()}/storage/${request.foto}`}
+                        src={getImageUrl(request.foto)}
                         alt="Request photo"
                         className="w-full h-64 object-cover"
                       />
@@ -157,7 +157,7 @@ export default function RequestDetailPage() {
                   <img
                     src={
                       request.user?.foto_penghuni
-                        ? `${getBaseUrl()}/storage/${request.user.foto_penghuni}`
+                        ? getImageUrl(request.user.foto_penghuni)
                         : 'https://via.placeholder.com/150'
                     }
                     alt={request.user?.nama}
@@ -276,7 +276,7 @@ export default function RequestDetailPage() {
               <span className="material-symbols-outlined text-3xl">close</span>
             </button>
             <img
-              src={`${getBaseUrl()}/storage/${request.foto}`}
+              src={getImageUrl(request.foto)}
               alt="Request photo"
               className="max-w-full max-h-[90vh] object-contain rounded-xl"
             />

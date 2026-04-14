@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Payment, Room } from '@/app/types';
+import { User, Payment } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
-import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
-import { showSuccess, showError, showDeleteConfirm, showConfirm } from '@/app/lib/sweetalert';
+import { ApiClient, getImageUrl } from '@/app/lib/api';
+import { showSuccess, showError, showDeleteConfirm } from '@/app/lib/sweetalert';
 
 export default function ResidentsPage() {
   const router = useRouter();
@@ -15,10 +15,6 @@ export default function ResidentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showAssignRoomModal, setShowAssignRoomModal] = useState(false);
-  const [selectedResident, setSelectedResident] = useState<User | null>(null);
-  const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
-  const [selectedRoomId, setSelectedRoomId] = useState<string>('');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -46,21 +42,32 @@ export default function ResidentsPage() {
   const fetchResidents = async () => {
     try {
       console.log('Fetching residents...');
-      const data = await ApiClient.getRooms();
-      console.log('Rooms data:', data);
-      
-      // Extract all residents from rooms
-      const allResidents: User[] = [];
-      const rooms = data.rooms || [];
-      rooms.forEach((room: any) => {
-        if (room.users && Array.isArray(room.users) && room.users.length > 0) {
-          room.users.forEach((resident: User) => {
-            allResidents.push({ ...resident, room });
-          });
-        }
-      });
-      console.log('All residents:', allResidents);
-      setResidents(allResidents);
+      // Try dedicated residents endpoint first
+      try {
+        const data = await ApiClient.getResidents();
+        console.log('Residents data:', data);
+        // API may return { users: [...] } or { residents: [...] } or an array
+        const residentList = data.users || data.residents || data.data || data || [];
+        const list = Array.isArray(residentList) ? residentList : [];
+        console.log('All residents:', list);
+        setResidents(list);
+      } catch (directErr) {
+        console.warn('Direct residents endpoint failed, falling back to rooms:', directErr);
+        // Fallback: extract from rooms
+        const data = await ApiClient.getRooms();
+        console.log('Rooms data:', data);
+        const allResidents: User[] = [];
+        const roomList = data.rooms || data.data || data || [];
+        (Array.isArray(roomList) ? roomList : []).forEach((room: any) => {
+          if (room.users && room.users.length > 0) {
+            room.users.forEach((resident: User) => {
+              allResidents.push({ ...resident, room });
+            });
+          }
+        });
+        console.log('All residents (from rooms):', allResidents);
+        setResidents(allResidents);
+      }
     } catch (err: any) {
       console.error('Failed to fetch residents:', err);
       await showError('Error', err.message || 'Gagal memuat data penghuni');
@@ -113,71 +120,6 @@ export default function ResidentsPage() {
   const handleDeleteClick = (resident: User, e: React.MouseEvent) => {
     e.stopPropagation();
     handleDeleteResident(resident);
-  };
-
-  const fetchAvailableRooms = async () => {
-    try {
-      const data = await ApiClient.getRooms();
-      const emptyRooms = (data.rooms || []).filter((room: Room) => room.status === 'Kosong');
-      setAvailableRooms(emptyRooms);
-    } catch (err) {
-      console.error('Failed to fetch rooms:', err);
-      await showError('Error', 'Failed to load available rooms');
-    }
-  };
-
-  const openAssignRoomModal = (resident: User, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setSelectedResident(resident);
-    setSelectedRoomId('');
-    fetchAvailableRooms();
-    setShowAssignRoomModal(true);
-  };
-
-  const handleAssignRoom = async () => {
-    if (!selectedResident || !selectedRoomId) {
-      await showError('Error', 'Please select a room');
-      return;
-    }
-
-    const result = await showConfirm(
-      'Assign Room',
-      `Assign room to ${selectedResident.nama}?`,
-      'Assign'
-    );
-
-    if (!result.isConfirmed) {
-      return;
-    }
-
-    try {
-      const API_URL = getApiUrl();
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/admin/users/${selectedResident.id}/assign-room`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        body: JSON.stringify({ room_id: selectedRoomId }),
-        cache: 'no-store' as RequestCache,
-        credentials: 'include' as RequestCredentials,
-      });
-
-      if (response.ok) {
-        await showSuccess('Success!', 'Room assigned successfully!');
-        setShowAssignRoomModal(false);
-        fetchResidents(); // Refresh list
-      } else {
-        const error = await response.json();
-        await showError('Error', error.error || 'Failed to assign room');
-      }
-    } catch (err: any) {
-      console.error('Failed to assign room:', err);
-      await showError('Error', err.message || 'Failed to assign room');
-    }
   };
 
   const filteredResidents = residents.filter((resident) => {
@@ -254,7 +196,7 @@ export default function ResidentsPage() {
                         className="w-12 h-12 rounded-full object-cover"
                         src={
                           resident.foto_penghuni
-                            ? `${getBaseUrl()}/storage/${resident.foto_penghuni}`
+                            ? getImageUrl(resident.foto_penghuni)
                             : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUe_fqSs_mEXImBn1Td_tce-oeWCz2RBOuzeAboY3q2ZSX3x1uhrrYkxyULXIOX-K8gQ7Gwf_Fewm-Dv05BdoAqlylRvBeuzeOje2aH2__JR3wjlyUbdLvM57eBZW52YNy7NHprIBSPZdV0nAq9pgCb4ALVjfkw_NqusJdPlOsrujJK-1utnB_yWit4dwKrwmjHjTlCZQAjqxk3wcTGByTJZPI6r1j8XXvOCoUDWUFX7jxjK0OPESkDug1XkKIWMg9cYssyxUnL40'
                         }
                       />
@@ -290,15 +232,6 @@ export default function ResidentsPage() {
                     
                     {/* Action Buttons */}
                     <div className="flex items-center gap-1 ml-2">
-                      {(!resident.room_id || resident.room_id === null) && (
-                        <button
-                          onClick={(e) => openAssignRoomModal(resident, e)}
-                          className="p-2 hover:bg-secondary-container rounded-lg transition-colors"
-                          title="Assign Room"
-                        >
-                          <span className="material-symbols-outlined text-secondary text-lg">meeting_room</span>
-                        </button>
-                      )}
                       <button
                         onClick={(e) => handleEditResident(resident, e)}
                         className="p-2 hover:bg-surface-container-high rounded-lg transition-colors"
@@ -338,67 +271,6 @@ export default function ResidentsPage() {
       >
         <span className="material-symbols-outlined">person_add</span>
       </button>
-
-      {/* Assign Room Modal */}
-      {showAssignRoomModal && selectedResident && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <div className="bg-surface-container-lowest rounded-3xl p-8 max-w-md w-full shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-headline text-2xl font-bold text-primary">Assign Room</h3>
-              <button
-                onClick={() => setShowAssignRoomModal(false)}
-                className="p-2 hover:bg-surface-container rounded-lg transition-colors"
-              >
-                <span className="material-symbols-outlined text-on-surface-variant">close</span>
-              </button>
-            </div>
-
-            <div className="mb-4">
-              <p className="text-sm text-on-surface-variant mb-2">Resident:</p>
-              <p className="font-headline font-bold text-primary">{selectedResident.nama}</p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="font-label text-xs font-semibold text-on-surface-variant uppercase tracking-widest block mb-2">
-                  Select Available Room
-                </label>
-                <select
-                  value={selectedRoomId}
-                  onChange={(e) => setSelectedRoomId(e.target.value)}
-                  className="w-full px-4 py-3 bg-surface-container-highest rounded-xl border-none focus:ring-2 focus:ring-secondary/20 transition-all font-body text-primary"
-                >
-                  <option value="">Choose a room...</option>
-                  {availableRooms.map((room) => (
-                    <option key={room.id} value={room.id}>
-                      Room {room.nomor_kamar} - Rp {room.tarif_dasar.toLocaleString('id-ID')}/month
-                    </option>
-                  ))}
-                </select>
-                {availableRooms.length === 0 && (
-                  <p className="text-xs text-error mt-2">No available rooms</p>
-                )}
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => setShowAssignRoomModal(false)}
-                  className="flex-1 px-6 py-3 border border-outline-variant/50 text-primary rounded-xl font-label text-sm font-bold hover:bg-surface-container-low transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAssignRoom}
-                  disabled={!selectedRoomId || availableRooms.length === 0}
-                  className="flex-1 px-6 py-3 bg-secondary text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-secondary/20"
-                >
-                  Assign Room
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

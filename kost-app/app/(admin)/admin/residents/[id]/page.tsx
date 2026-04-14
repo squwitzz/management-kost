@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { User, Payment, Room } from '@/app/types';
+import { User, Payment } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
-import { ApiClient, getApiUrl, getBaseUrl } from '@/app/lib/api';
-import { showSuccess, showError, showConfirm } from '@/app/lib/sweetalert';
+import { ApiClient, getImageUrl } from '@/app/lib/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -18,9 +17,6 @@ export default function ResidentDetailPage() {
   const [resident, setResident] = useState<User | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAssignRoomModal, setShowAssignRoomModal] = useState(false);
-  const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
-  const [selectedRoomId, setSelectedRoomId] = useState<string>('');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -46,78 +42,17 @@ export default function ResidentDetailPage() {
   const fetchResidentDetail = async () => {
     try {
       const data = await ApiClient.getResident(parseInt(residentId));
-      console.log('Resident data:', data);
-      console.log('Resident room_id:', data.user?.room_id);
-      console.log('Resident room:', data.user?.room);
-      setResident(data.user);
+      // Log data to see the shape
+      console.log('Resident data from API:', data);
+      
+      // Backend returns { user: {...} }
+      const residentData = data.user || data.data || data;
+      setResident(residentData);
     } catch (err) {
       console.error('Failed to fetch resident:', err);
-      await showError('Error', 'Failed to load resident details');
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchAvailableRooms = async () => {
-    try {
-      const data = await ApiClient.getRooms();
-      const emptyRooms = (data.rooms || []).filter((room: Room) => room.status === 'Kosong');
-      setAvailableRooms(emptyRooms);
-    } catch (err) {
-      console.error('Failed to fetch rooms:', err);
-      await showError('Error', 'Failed to load available rooms');
-    }
-  };
-
-  const handleAssignRoom = async () => {
-    if (!selectedRoomId) {
-      await showError('Error', 'Please select a room');
-      return;
-    }
-
-    const result = await showConfirm(
-      'Assign Room',
-      `Assign this resident to the selected room?`,
-      'Assign'
-    );
-
-    if (!result.isConfirmed) {
-      return;
-    }
-
-    try {
-      const API_URL = getApiUrl();
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/admin/users/${residentId}/assign-room`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        body: JSON.stringify({ room_id: selectedRoomId }),
-        cache: 'no-store' as RequestCache,
-        credentials: 'include' as RequestCredentials,
-      });
-
-      if (response.ok) {
-        await showSuccess('Success!', 'Room assigned successfully!');
-        setShowAssignRoomModal(false);
-        fetchResidentDetail();
-      } else {
-        const error = await response.json();
-        await showError('Error', error.error || 'Failed to assign room');
-      }
-    } catch (err: any) {
-      console.error('Failed to assign room:', err);
-      await showError('Error', err.message || 'Failed to assign room');
-    }
-  };
-
-  const openAssignRoomModal = () => {
-    fetchAvailableRooms();
-    setShowAssignRoomModal(true);
   };
 
   const fetchPayments = async () => {
@@ -315,9 +250,6 @@ export default function ResidentDetailPage() {
     );
   }
 
-  // Ensure we're on client side before rendering buttons
-  const isClient = typeof window !== 'undefined';
-
   return (
     <div className="bg-surface text-on-surface min-h-screen pb-32">
       <AdminHeader title="Resident Profile" showBackButton={true} showMenu={false} />
@@ -331,54 +263,16 @@ export default function ResidentDetailPage() {
             </div>
             <div>
               <p className="font-headline font-bold text-primary">{resident.nama}</p>
-              <p className="font-label text-xs text-on-surface-variant">
-                Room {resident.room?.nomor_kamar || '-'} 
-                {(!resident.room || !resident.room_id) && (
-                  <span className="ml-2 px-2 py-0.5 bg-error-container text-on-error-container text-[10px] font-bold rounded-full">
-                    No Room Assigned
-                  </span>
-                )}
-              </p>
+              <p className="font-label text-xs text-on-surface-variant">Room {resident.room?.nomor_kamar || '-'}</p>
             </div>
           </div>
-          {isClient && (
-            <div className="flex gap-2">
-              {/* Always show for testing - will fix condition later */}
-              <button
-                onClick={() => {
-                  console.log('=== DEBUG RESIDENT DATA ===');
-                  console.log('resident:', resident);
-                  console.log('resident.room_id:', resident.room_id);
-                  console.log('resident.room:', resident.room);
-                  console.log('!resident.room:', !resident.room);
-                  console.log('!resident.room_id:', !resident.room_id);
-                  console.log('resident.room_id === null:', resident.room_id === null);
-                  alert(`room_id: ${resident.room_id}\nroom: ${JSON.stringify(resident.room)}\nCondition (!resident.room || !resident.room_id): ${!resident.room || !resident.room_id}`);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-error text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95"
-              >
-                <span className="material-symbols-outlined text-lg">bug_report</span>
-                <span className="hidden md:inline">Debug</span>
-              </button>
-              
-              {/* Show assign room button - testing */}
-              <button
-                onClick={openAssignRoomModal}
-                className="flex items-center gap-2 px-4 py-2 bg-secondary text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95"
-              >
-                <span className="material-symbols-outlined text-lg">meeting_room</span>
-                <span className="hidden md:inline">Assign Room</span>
-              </button>
-              
-              <button
-                onClick={generatePDF}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95"
-              >
-                <span className="material-symbols-outlined text-lg">download</span>
-                <span className="hidden md:inline">Export Biodata</span>
-              </button>
-            </div>
-          )}
+          <button
+            onClick={generatePDF}
+            className="flex items-center gap-2 px-4 py-2 bg-secondary text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95"
+          >
+            <span className="material-symbols-outlined text-lg">download</span>
+            <span className="hidden md:inline">Export Biodata</span>
+          </button>
         </div>
 
         {/* Biodata Section: Bento Style Card */}
@@ -388,10 +282,10 @@ export default function ResidentDetailPage() {
             <div className="relative group">
               <img
                 alt={resident.nama}
-                className="w-full aspect-square object-cover rounded-2xl grayscale hover:grayscale-0 transition-all duration-700"
+                className="w-full aspect-square object-cover rounded-2xl border border-outline-variant/10 shadow-sm transition-all duration-300"
                 src={
                   resident.foto_penghuni
-                    ? `${getBaseUrl()}/storage/${resident.foto_penghuni}`
+                    ? getImageUrl(resident.foto_penghuni)
                     : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUe_fqSs_mEXImBn1Td_tce-oeWCz2RBOuzeAboY3q2ZSX3x1uhrrYkxyULXIOX-K8gQ7Gwf_Fewm-Dv05BdoAqlylRvBeuzeOje2aH2__JR3wjlyUbdLvM57eBZW52YNy7NHprIBSPZdV0nAq9pgCb4ALVjfkw_NqusJdPlOsrujJK-1utnB_yWit4dwKrwmjHjTlCZQAjqxk3wcTGByTJZPI6r1j8XXvOCoUDWUFX7jxjK0OPESkDug1XkKIWMg9cYssyxUnL40'
                 }
               />
@@ -407,34 +301,24 @@ export default function ResidentDetailPage() {
                 Resident ID: #CUR-{resident.id.toString().padStart(4, '0')}
               </p>
             </div>
-            {isClient && (
-              <div className="mt-8 flex gap-3">
-                <button 
-                  onClick={generatePDF}
-                  className="flex-1 py-3 px-4 bg-primary text-on-primary rounded-xl font-bold text-sm hover:opacity-90 transition-opacity active:scale-95 duration-200 flex items-center justify-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-lg">download</span>
-                  Export PDF
-                </button>
-                {/* Always show for testing */}
-                <button 
-                  onClick={openAssignRoomModal}
-                  className="flex-1 py-3 px-4 bg-secondary text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity active:scale-95 duration-200 flex items-center justify-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-lg">meeting_room</span>
-                  Assign Room
-                </button>
-                <button className="p-3 bg-secondary-container/10 text-secondary rounded-xl hover:bg-secondary-container/20 transition-colors">
-                  <span className="material-symbols-outlined">chat_bubble</span>
-                </button>
-              </div>
-            )}
+            <div className="mt-8 flex gap-3">
+              <button 
+                onClick={generatePDF}
+                className="flex-1 py-3 px-4 bg-primary text-on-primary rounded-xl font-bold text-sm hover:opacity-90 transition-opacity active:scale-95 duration-200 flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-lg">download</span>
+                Export PDF
+              </button>
+              <button className="p-3 bg-secondary-container/10 text-secondary rounded-xl hover:bg-secondary-container/20 transition-colors">
+                <span className="material-symbols-outlined">chat_bubble</span>
+              </button>
+            </div>
           </div>
 
           {/* Details Column */}
           <div className="md:col-span-7 space-y-6">
             <div className="bg-surface-container-low rounded-[2rem] p-10 h-full flex flex-col justify-between">
-              <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-on-surface-variant/50 mb-8 label-text">  
+              <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-on-surface-variant/50 mb-8 label-text">
                 Verification &amp; Contact
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 gap-x-8">
@@ -576,62 +460,6 @@ export default function ResidentDetailPage() {
       </main>
 
       <AdminBottomNav />
-
-      {/* Assign Room Modal */}
-      {showAssignRoomModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <div className="bg-surface-container-lowest rounded-3xl p-8 max-w-md w-full shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-headline text-2xl font-bold text-primary">Assign Room</h3>
-              <button
-                onClick={() => setShowAssignRoomModal(false)}
-                className="p-2 hover:bg-surface-container rounded-lg transition-colors"
-              >
-                <span className="material-symbols-outlined text-on-surface-variant">close</span>
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="font-label text-xs font-semibold text-on-surface-variant uppercase tracking-widest block mb-2">
-                  Select Available Room
-                </label>
-                <select
-                  value={selectedRoomId}
-                  onChange={(e) => setSelectedRoomId(e.target.value)}
-                  className="w-full px-4 py-3 bg-surface-container-highest rounded-xl border-none focus:ring-2 focus:ring-secondary/20 transition-all font-body text-primary"
-                >
-                  <option value="">Choose a room...</option>
-                  {availableRooms.map((room) => (
-                    <option key={room.id} value={room.id}>
-                      Room {room.nomor_kamar} - Rp {room.tarif_dasar.toLocaleString('id-ID')}/month
-                    </option>
-                  ))}
-                </select>
-                {availableRooms.length === 0 && (
-                  <p className="text-xs text-error mt-2">No available rooms</p>
-                )}
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => setShowAssignRoomModal(false)}
-                  className="flex-1 px-6 py-3 border border-outline-variant/50 text-primary rounded-xl font-label text-sm font-bold hover:bg-surface-container-low transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAssignRoom}
-                  disabled={!selectedRoomId || availableRooms.length === 0}
-                  className="flex-1 px-6 py-3 bg-secondary text-white rounded-xl font-label text-sm font-bold hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-secondary/20"
-                >
-                  Assign Room
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

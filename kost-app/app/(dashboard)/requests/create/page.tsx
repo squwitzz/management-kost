@@ -154,8 +154,8 @@ export default function CreateRequestPage() {
                       </span>
                     </label>
                     {preview && (
-                      <div className="rounded-xl overflow-hidden">
-                        <img className="w-full h-full object-cover" src={preview} alt="Preview" />
+                      <div className="rounded-xl overflow-hidden aspect-square md:aspect-auto md:h-full relative shadow-md">
+                        <img className="w-full h-full object-cover absolute inset-0" src={preview} alt="Preview" />
                       </div>
                     )}
                   </div>
