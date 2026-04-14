@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiClient } from '@/app/lib/api';
 
@@ -13,24 +13,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Clear any existing session when login page loads
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Check if there's an existing session
-      const token = localStorage.getItem('token');
-      const user = localStorage.getItem('user');
-      
-      // If user explicitly navigated to /login, clear the session
-      // This allows logout by navigating to /login
-      if (token || user) {
-        console.log('Clearing existing session on login page');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-      }
-    }
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
