@@ -1,19 +1,41 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { isAppInstalled } from '@/app/lib/notifications';
 
 export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
+    // Check if iOS
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    setIsIOS(iOS);
+
     // Check if already installed
-    if (isAppInstalled()) {
+    if (window.matchMedia('(display-mode: standalone)').matches) {
       return;
     }
 
-    // Listen for beforeinstallprompt event
+    // Check if dismissed recently (within 24 hours)
+    const dismissed = localStorage.getItem('pwa-prompt-dismissed');
+    if (dismissed) {
+      const dismissedTime = parseInt(dismissed);
+      const hoursSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60);
+      if (hoursSinceDismissed < 24) {
+        return;
+      }
+    }
+
+    // For iOS, show manual install prompt
+    if (iOS && !(window.navigator as any).standalone) {
+      setTimeout(() => {
+        setShowPrompt(true);
+      }, 3000);
+      return;
+    }
+
+    // Listen for beforeinstallprompt event (Android/Chrome)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -62,21 +84,29 @@ export default function PWAInstallPrompt() {
           </div>
           <div className="flex-1">
             <h3 className="font-headline font-bold text-primary mb-1">Install Kost App</h3>
-            <p className="text-sm text-on-surface-variant mb-4">
-              Install aplikasi untuk akses lebih cepat dan notifikasi real-time
-            </p>
+            {isIOS ? (
+              <p className="text-sm text-on-surface-variant mb-4">
+                Tap <span className="inline-flex items-center mx-1"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L12 12M12 12L8 8M12 12L16 8M5 15L5 20L19 20L19 15"/></svg></span> lalu pilih "Add to Home Screen"
+              </p>
+            ) : (
+              <p className="text-sm text-on-surface-variant mb-4">
+                Install aplikasi untuk akses lebih cepat dan notifikasi real-time
+              </p>
+            )}
             <div className="flex gap-2">
-              <button
-                onClick={handleInstall}
-                className="flex-1 bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm hover:opacity-90 transition-opacity"
-              >
-                Install
-              </button>
+              {!isIOS && (
+                <button
+                  onClick={handleInstall}
+                  className="flex-1 bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm hover:opacity-90 transition-opacity"
+                >
+                  Install
+                </button>
+              )}
               <button
                 onClick={handleDismiss}
-                className="px-4 py-2 rounded-lg font-bold text-sm text-outline hover:bg-surface-container transition-colors"
+                className={`${isIOS ? 'flex-1' : ''} px-4 py-2 rounded-lg font-bold text-sm ${isIOS ? 'bg-primary text-white' : 'text-outline hover:bg-surface-container'} transition-colors`}
               >
-                Nanti
+                {isIOS ? 'Mengerti' : 'Nanti'}
               </button>
             </div>
           </div>
