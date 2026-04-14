@@ -23,10 +23,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // If logged in and trying to access login page, redirect to dashboard
-  if (token && pathname === '/login') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
+  // Allow access to login page even if logged in (for logout/account switching)
+  // Removed: if (token && pathname === '/login') redirect to dashboard
 
   return NextResponse.next();
 }
