@@ -195,7 +195,7 @@ export default function PaymentsPage() {
               Total Tagihan
             </span>
             <span className="font-headline text-2xl font-bold text-primary">
-              Rp {totalAmount.toLocaleString('id-ID')}
+              Rp {new Intl.NumberFormat('id-ID').format(totalAmount)}
             </span>
           </div>
           <div className="bg-secondary-container/10 px-6 py-4 rounded-xl">
@@ -315,7 +315,7 @@ export default function PaymentsPage() {
                     <div className="flex items-center gap-4 flex-shrink-0">
                       <div className="text-right hidden md:block">
                         <p className="font-headline font-bold text-primary">
-                          Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
+                          Rp {new Intl.NumberFormat('id-ID').format(payment.jumlah_tagihan)}
                         </p>
                         <p className="font-label text-xs text-on-surface-variant">
                           Due: {payment.due_date ? new Date(payment.due_date).toLocaleDateString('id-ID') : '-'}
@@ -402,7 +402,7 @@ export default function PaymentsPage() {
                     >
                       <div className="text-right hidden md:block">
                         <p className="font-headline font-bold text-primary">
-                          Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
+                          Rp {new Intl.NumberFormat('id-ID').format(payment.jumlah_tagihan)}
                         </p>
                         <p className="font-label text-xs text-tertiary">Draft - Not sent</p>
                       </div>

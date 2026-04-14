@@ -249,7 +249,7 @@ export default function GeneratePaymentsPage() {
                         <p className="font-label text-xs text-on-surface-variant">Room {item.room_number}</p>
                       </div>
                       <p className="font-headline font-bold text-primary">
-                        Rp {item.jumlah_tagihan.toLocaleString('id-ID')}
+                        Rp {new Intl.NumberFormat('id-ID').format(item.jumlah_tagihan)}
                       </p>
                     </div>
                   ))}
@@ -260,7 +260,7 @@ export default function GeneratePaymentsPage() {
                 <div>
                   <p className="font-label text-xs text-secondary uppercase tracking-wider">Total Tagihan</p>
                   <p className="font-headline text-2xl font-bold text-secondary">
-                    Rp {totalAmount.toLocaleString('id-ID')}
+                    Rp {new Intl.NumberFormat('id-ID').format(totalAmount)}
                   </p>
                 </div>
                 <div className="text-right">
