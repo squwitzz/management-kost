@@ -54,6 +54,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [maintenanceRequests, setMaintenanceRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Calculate amounts first (before any conditional returns)
@@ -75,7 +76,8 @@ export default function DashboardPage() {
       // Fetch data in parallel without blocking UI
       Promise.all([
         fetchRoomData(authUser.room_id),
-        fetchPaymentData(authUser.id)
+        fetchPaymentData(authUser.id),
+        fetchMaintenanceRequests()
       ]);
     }
   }, [authLoading, isAuthenticated, authUser]);
@@ -101,6 +103,15 @@ export default function DashboardPage() {
       setPayments(userPayments);
     } catch (err) {
       console.error('Failed to fetch payments:', err);
+    }
+  };
+
+  const fetchMaintenanceRequests = async () => {
+    try {
+      const data = await ApiClient.getMaintenanceRequests();
+      setMaintenanceRequests(data.requests || data.data || []);
+    } catch (err) {
+      console.error('Failed to fetch maintenance requests:', err);
     }
   };
 
@@ -261,66 +272,107 @@ export default function DashboardPage() {
               <div className="h-[1px] flex-grow mx-4 md:mx-8 bg-outline-variant/20"></div>
             </div>
             <div className="space-y-3 md:space-y-4">
-              {payments.length === 0 ? (
+              {payments.length === 0 && maintenanceRequests.length === 0 ? (
                 <div className="py-12 text-center">
                   <p className="text-on-surface-variant text-sm">No recent activity</p>
                 </div>
               ) : (
-                payments.slice(0, 3).map((payment) => (
-                  <div
-                    key={payment.id}
-                    className={`flex items-center justify-between py-4 md:py-6 px-3 md:px-4 rounded-xl ${
-                      payment.status_bayar === 'Lunas'
-                        ? 'bg-surface-container-low border-l-4 border-secondary'
-                        : 'hover:bg-surface-container-low'
-                    } transition-colors`}
-                  >
-                    <div className="flex items-center gap-3 md:gap-6 flex-1 min-w-0">
-                      <div
-                        className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          payment.status_bayar === 'Lunas'
-                            ? 'bg-secondary-container/10 text-secondary'
-                            : payment.status_bayar === 'Menunggu Verifikasi'
-                            ? 'bg-tertiary-container/10 text-tertiary'
-                            : 'bg-error-container/10 text-error'
-                        }`}
-                      >
-                        <span
-                          className="material-symbols-outlined text-lg md:text-xl"
-                          style={
-                            payment.status_bayar === 'Lunas' ? { fontVariationSettings: "'FILL' 1" } : {}
-                          }
+                <>
+                  {/* Payment Activities */}
+                  {payments.slice(0, 3).map((payment) => (
+                    <div
+                      key={`payment-${payment.id}`}
+                      className={`flex items-center justify-between py-4 md:py-6 px-3 md:px-4 rounded-xl ${
+                        payment.status_bayar === 'Lunas'
+                          ? 'bg-surface-container-low border-l-4 border-secondary'
+                          : 'hover:bg-surface-container-low'
+                      } transition-colors`}
+                    >
+                      <div className="flex items-center gap-3 md:gap-6 flex-1 min-w-0">
+                        <div
+                          className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            payment.status_bayar === 'Lunas'
+                              ? 'bg-secondary-container/10 text-secondary'
+                              : payment.status_bayar === 'Menunggu Verifikasi'
+                              ? 'bg-tertiary-container/10 text-tertiary'
+                              : 'bg-error-container/10 text-error'
+                          }`}
                         >
-                          {payment.status_bayar === 'Lunas'
-                            ? 'check_circle'
-                            : payment.status_bayar === 'Menunggu Verifikasi'
-                            ? 'schedule'
-                            : 'cancel'}
-                        </span>
+                          <span
+                            className="material-symbols-outlined text-lg md:text-xl"
+                            style={
+                              payment.status_bayar === 'Lunas' ? { fontVariationSettings: "'FILL' 1" } : {}
+                            }
+                          >
+                            {payment.status_bayar === 'Lunas'
+                              ? 'check_circle'
+                              : payment.status_bayar === 'Menunggu Verifikasi'
+                              ? 'schedule'
+                              : 'cancel'}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-primary text-sm md:text-base truncate">
+                            {payment.status_bayar === 'Lunas'
+                              ? 'Payment Confirmed'
+                              : payment.status_bayar === 'Menunggu Verifikasi'
+                              ? 'Payment Pending'
+                              : 'Payment Due'}
+                          </p>
+                          <p className="text-[10px] md:text-xs text-on-surface-variant font-label mt-0.5 md:mt-1 truncate">
+                            {payment.bulan_dibayar} - Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-bold text-primary text-sm md:text-base truncate">
-                          {payment.status_bayar === 'Lunas'
-                            ? 'Payment Confirmed'
-                            : payment.status_bayar === 'Menunggu Verifikasi'
-                            ? 'Payment Pending'
-                            : 'Payment Due'}
-                        </p>
-                        <p className="text-[10px] md:text-xs text-on-surface-variant font-label mt-0.5 md:mt-1 truncate">
-                          {payment.bulan_dibayar} - Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
-                        </p>
-                      </div>
+                      <p className="text-[10px] md:text-xs font-bold font-label text-outline uppercase tracking-tighter flex-shrink-0 ml-2">
+                        {payment.tanggal_upload
+                          ? new Date(payment.tanggal_upload).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                            })
+                          : '-'}
+                      </p>
                     </div>
-                    <p className="text-[10px] md:text-xs font-bold font-label text-outline uppercase tracking-tighter flex-shrink-0 ml-2">
-                      {payment.tanggal_upload
-                        ? new Date(payment.tanggal_upload).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                          })
-                        : '-'}
-                    </p>
-                  </div>
-                ))
+                  ))}
+
+                  {/* Maintenance Request Activities */}
+                  {maintenanceRequests.slice(0, 2).map((request) => (
+                    <div
+                      key={`request-${request.id}`}
+                      className="flex items-center justify-between py-4 md:py-6 px-3 md:px-4 rounded-xl hover:bg-surface-container-low transition-colors"
+                    >
+                      <div className="flex items-center gap-3 md:gap-6 flex-1 min-w-0">
+                        <div
+                          className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            request.status === 'Selesai'
+                              ? 'bg-secondary-container/10 text-secondary'
+                              : request.status === 'Dalam Proses'
+                              ? 'bg-tertiary-container/10 text-tertiary'
+                              : 'bg-surface-container-high text-on-surface-variant'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-lg md:text-xl">
+                            {request.status === 'Selesai' ? 'task_alt' : 'build'}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-primary text-sm md:text-base truncate">
+                            Maintenance Request {request.status === 'Selesai' ? 'Completed' : request.status === 'Dalam Proses' ? 'In Progress' : 'Submitted'}
+                          </p>
+                          <p className="text-[10px] md:text-xs text-on-surface-variant font-label mt-0.5 md:mt-1 truncate">
+                            {request.deskripsi}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-[10px] md:text-xs font-bold font-label text-outline uppercase tracking-tighter flex-shrink-0 ml-2">
+                        {new Date(request.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                  ))}
+                </>
               )}
             </div>
           </div>
