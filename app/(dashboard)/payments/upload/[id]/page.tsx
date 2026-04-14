@@ -74,8 +74,10 @@ export default function UploadPaymentProofPage() {
     
     try {
       console.log('=== FETCHING PAYMENT DETAIL ===');
-      console.log('Fetching payment with ID:', paymentId);
-      console.log('Current user:', user.id, user.nama);
+      console.log('Payment ID:', paymentId);
+      console.log('Current User ID:', user.id);
+      console.log('Current User Name:', user.nama);
+      console.log('Current User Role:', user.role);
       
       // Check if token exists
       const token = localStorage.getItem('token');
@@ -96,11 +98,18 @@ export default function UploadPaymentProofPage() {
         throw new Error('Payment data not found in response');
       }
       
-      console.log('✅ Payment data parsed:', paymentData);
+      console.log('✅ Payment data parsed');
+      console.log('Payment User ID:', paymentData.user_id);
+      console.log('Current User ID:', user.id);
+      console.log('Payment User ID type:', typeof paymentData.user_id);
+      console.log('Current User ID type:', typeof user.id);
+      console.log('Match?', paymentData.user_id == user.id);
       
-      // Validate payment belongs to current user
-      if (paymentData.user_id !== user.id) {
-        console.error('❌ Payment user_id:', paymentData.user_id, 'Current user id:', user.id);
+      // Validate payment belongs to current user (use == for loose comparison to handle type mismatch)
+      if (parseInt(paymentData.user_id) !== parseInt(user.id)) {
+        console.error('❌ AUTHORIZATION FAILED');
+        console.error('Payment belongs to user:', paymentData.user_id);
+        console.error('But current user is:', user.id);
         throw new Error('You are not authorized to access this payment');
       }
       
@@ -121,6 +130,9 @@ export default function UploadPaymentProofPage() {
         localStorage.removeItem('user');
         document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         router.push('/login');
+      } else if (err.message.includes('not belong to you')) {
+        await showError('Access Denied', 'This payment does not belong to your account.');
+        router.push('/payments');
       } else if (err.message.includes('404') || err.message.includes('not found')) {
         await showError('Payment Not Found', 'The payment you are looking for does not exist.');
         router.push('/payments');
