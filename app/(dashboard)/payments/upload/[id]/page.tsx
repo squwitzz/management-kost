@@ -51,9 +51,16 @@ export default function UploadPaymentProofPage() {
   const fetchPaymentDetail = async () => {
     try {
       const data = await ApiClient.getPayment(parseInt(paymentId));
-      setPayment(data.payment);
-    } catch (err) {
-      await showError('Error', 'Failed to fetch payment details');
+      console.log('Payment data:', data);
+      // Backend may return { payment: {...} } or { data: {...} } or direct object
+      const paymentData = data.payment || data.data || data;
+      if (!paymentData) {
+        throw new Error('Payment data not found');
+      }
+      setPayment(paymentData);
+    } catch (err: any) {
+      console.error('Failed to fetch payment:', err);
+      await showError('Error', err.message || 'Failed to fetch payment details');
       router.back();
     } finally {
       setLoading(false);

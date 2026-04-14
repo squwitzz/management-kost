@@ -395,6 +395,25 @@ export class ApiClient {
     return response.json();
   }
 
+  // Assign room to resident (Admin only)
+  static async assignRoom(userId: number, roomId: number) {
+    const response = await fetchWithAuth(`${API_URL}/admin/users/${userId}/assign-room`, {
+      method: 'POST',
+      headers: {
+        ...this.getHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ room_id: roomId }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || error.message || 'Failed to assign room');
+    }
+
+    return response.json();
+  }
+
   // Room Management
   static async getRooms() {
     const timestamp = new Date().getTime();
@@ -674,16 +693,22 @@ export class ApiClient {
   }
 
   static async getPayment(paymentId: number) {
+    console.log('Fetching payment:', paymentId);
     const response = await fetchWithAuth(`${API_URL}/payments/${paymentId}`, {
       headers: this.getHeaders(),
     });
 
+    console.log('Payment response status:', response.status);
+
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to fetch payment');
+      const error = await response.json().catch(() => ({ message: 'Failed to fetch payment' }));
+      console.error('Payment fetch error:', error);
+      throw new Error(error.error || error.message || 'Failed to fetch payment');
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log('Payment data received:', data);
+    return data;
   }
 
   static async updatePaymentStatus(paymentId: number, status: string) {

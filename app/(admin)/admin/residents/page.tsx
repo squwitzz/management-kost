@@ -8,6 +8,13 @@ import AdminBottomNav from '@/app/components/AdminBottomNav';
 import { ApiClient, getImageUrl } from '@/app/lib/api';
 import { showSuccess, showError, showDeleteConfirm } from '@/app/lib/sweetalert';
 
+interface Room {
+  id: number;
+  nomor_kamar: string;
+  status: string;
+  tarif_dasar: number;
+}
+
 export default function ResidentsPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);

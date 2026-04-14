@@ -6,31 +6,34 @@ import { User } from '@/app/types';
 import AdminHeader from '@/app/components/AdminHeader';
 import AdminBottomNav from '@/app/components/AdminBottomNav';
 import { ApiClient } from '@/app/lib/api';
-import { showSuccess, showError, showLoading, closeLoading } from '@/app/lib/sweetalert';
+import { showSuccess, showError } from '@/app/lib/sweetalert';
+
+interface Room {
+  id: number;
+  nomor_kamar: string;
+  status: string;
+  tarif_dasar: number;
+}
 
 export default function EditResidentPage() {
   const router = useRouter();
   const params = useParams();
-  const residentId = params.id;
+  const residentId = params.id as string;
 
+  const [resident, setResident] = useState<User | null>(null);
+  const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [resident, setResident] = useState<User | null>(null);
-  const [formData, setFormData] = useState({
-    nama: '',
-    nomor_telepon: '',
-    email: '',
-    alamat: '',
-    tanggal_lahir: '',
-    jenis_kelamin: '',
-    pekerjaan: '',
-    kontak_darurat: '',
-    password: '',
-    confirmPassword: '',
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Form state
+  const [nama, setNama] = useState('');
+  const [nomorTelepon, setNomorTelepon] = useState('');
+  const [email, setEmail] = useState('');
+  const [roomId, setRoomId] = useState<number | null>(null);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
 
@@ -45,98 +48,74 @@ export default function EditResidentPage() {
       return;
     }
 
-    fetchResident();
-  }, [residentId]);
+    fetchResidentData();
+    fetchAvailableRooms();
+  }, [residentId, router]);
 
-  const fetchResident = async () => {
+  const fetchResidentData = async () => {
     try {
-      const data = await ApiClient.getResident(Number(residentId));
-      setResident(data.user);
-      setFormData({
-        nama: data.user.nama || '',
-        nomor_telepon: data.user.nomor_telepon || '',
-        email: data.user.email || '',
-        alamat: data.user.alamat || '',
-        tanggal_lahir: data.user.tanggal_lahir || '',
-        jenis_kelamin: data.user.jenis_kelamin || '',
-        pekerjaan: data.user.pekerjaan || '',
-        kontak_darurat: data.user.kontak_darurat || '',
-        password: '',
-        confirmPassword: '',
-      });
+      const data = await ApiClient.getResident(parseInt(residentId));
+      const residentData = data.user || data.data || data;
+      
+      setResident(residentData);
+      setNama(residentData.nama || '');
+      setNomorTelepon(residentData.nomor_telepon || '');
+      setEmail(residentData.email || '');
+      setRoomId(residentData.room_id || null);
     } catch (err: any) {
       console.error('Failed to fetch resident:', err);
-      showError('Error', err.message || 'Failed to fetch resident data');
-      router.back();
+      await showError('Error', err.message || 'Gagal memuat data penghuni');
+      router.push('/admin/residents');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error when user types
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+  const fetchAvailableRooms = async () => {
+    try {
+      const data = await ApiClient.getRooms();
+      const roomList = data.rooms || data.data || data || [];
+      // Show rooms that are empty OR the current resident's room
+      const available = (Array.isArray(roomList) ? roomList : []).filter(
+        (room: Room) => room.status === 'Kosong' || room.id === roomId
+      );
+      setAvailableRooms(available);
+    } catch (err) {
+      console.error('Failed to fetch rooms:', err);
     }
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.nama.trim()) newErrors.nama = 'Name is required';
-    if (!formData.nomor_telepon.trim()) newErrors.nomor_telepon = 'Phone number is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    
-    // Password validation (only if password is provided)
-    if (formData.password) {
-      if (formData.password.length < 6) {
-        newErrors.password = 'Password must be at least 6 characters';
-      }
-      if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    if (!nama || !nomorTelepon) {
+      await showError('Error', 'Nama dan nomor telepon harus diisi');
+      return;
+    }
 
-    showLoading('Saving...', 'Please wait while we update the resident information');
-    
+    setSaving(true);
     try {
-      // Prepare data - only include password if it's provided
-      const updateData: any = {
-        nama: formData.nama,
-        nomor_telepon: formData.nomor_telepon,
-        email: formData.email,
-        alamat: formData.alamat,
-        tanggal_lahir: formData.tanggal_lahir,
-        jenis_kelamin: formData.jenis_kelamin,
-        pekerjaan: formData.pekerjaan,
-        kontak_darurat: formData.kontak_darurat,
-      };
-
-      if (formData.password) {
-        updateData.password = formData.password;
-        updateData.password_confirmation = formData.confirmPassword;
+      const originalRoomId = resident?.room_id;
+      
+      // If room changed, assign new room first
+      if (roomId !== originalRoomId && roomId !== null) {
+        await ApiClient.assignRoom(parseInt(residentId), roomId);
       }
 
-      await ApiClient.updateResident(Number(residentId), updateData);
-      
-      closeLoading();
-      await showSuccess('Success!', 'Resident updated successfully');
+      // Update resident data
+      await ApiClient.updateResident(parseInt(residentId), {
+        nama,
+        nomor_telepon: nomorTelepon,
+        email: email || undefined,
+      });
+
+      await showSuccess('Success', 'Data penghuni berhasil diperbarui');
       router.push('/admin/residents');
     } catch (err: any) {
       console.error('Failed to update resident:', err);
-      closeLoading();
-      showError('Update Failed', err.message || 'Failed to update resident');
+      await showError('Error', err.message || 'Gagal memperbarui data penghuni');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -148,220 +127,115 @@ export default function EditResidentPage() {
     );
   }
 
+  if (!resident) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Resident not found</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-surface text-on-surface min-h-screen pb-24">
-      <AdminHeader />
+    <div className="bg-surface text-on-surface min-h-screen pb-32">
+      <AdminHeader title="Edit Resident" showBackButton={true} showMenu={false} />
 
-      <main className="px-6 mt-4">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-primary mb-4"
-          >
-            <span className="material-symbols-outlined">arrow_back</span>
-            <span className="font-label font-bold">Back</span>
-          </button>
-          <h1 className="text-2xl font-headline font-bold text-on-surface">Edit Resident</h1>
-          <p className="font-label text-sm text-on-surface-variant mt-1">
-            Update resident information
-          </p>
-        </div>
+      <main className="max-w-2xl mx-auto px-6 py-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Personal Information */}
+          <div className="bg-surface-container-lowest rounded-2xl p-6 space-y-6">
+            <h3 className="text-lg font-headline font-bold text-primary">Personal Information</h3>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name */}
-          <div>
-            <label className="block font-label text-sm font-bold text-on-surface mb-2">
-              Full Name *
-            </label>
-            <input
-              type="text"
-              name="nama"
-              value={formData.nama}
-              onChange={handleChange}
-              className={`w-full px-4 py-3 bg-surface-container-highest rounded-xl border-2 ${
-                errors.nama ? 'border-error' : 'border-transparent'
-              } focus:border-primary focus:outline-none transition-colors`}
-              placeholder="Enter full name"
-            />
-            {errors.nama && <p className="text-error text-xs mt-1">{errors.nama}</p>}
+            <div className="space-y-2">
+              <label className="font-label text-sm text-on-surface-variant">
+                Nama Lengkap <span className="text-error">*</span>
+              </label>
+              <input
+                type="text"
+                value={nama}
+                onChange={(e) => setNama(e.target.value)}
+                className="w-full px-4 py-3 bg-surface-container-highest border-none rounded-xl focus:ring-2 focus:ring-secondary font-label text-sm"
+                placeholder="Masukkan nama lengkap"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="font-label text-sm text-on-surface-variant">
+                Nomor Telepon <span className="text-error">*</span>
+              </label>
+              <input
+                type="tel"
+                value={nomorTelepon}
+                onChange={(e) => setNomorTelepon(e.target.value)}
+                className="w-full px-4 py-3 bg-surface-container-highest border-none rounded-xl focus:ring-2 focus:ring-secondary font-label text-sm"
+                placeholder="08xxxxxxxxxx"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="font-label text-sm text-on-surface-variant">
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-surface-container-highest border-none rounded-xl focus:ring-2 focus:ring-secondary font-label text-sm"
+                placeholder="email@example.com"
+              />
+            </div>
           </div>
 
-          {/* Phone */}
-          <div>
-            <label className="block font-label text-sm font-bold text-on-surface mb-2">
-              Phone Number *
-            </label>
-            <input
-              type="tel"
-              name="nomor_telepon"
-              value={formData.nomor_telepon}
-              onChange={handleChange}
-              className={`w-full px-4 py-3 bg-surface-container-highest rounded-xl border-2 ${
-                errors.nomor_telepon ? 'border-error' : 'border-transparent'
-              } focus:border-primary focus:outline-none transition-colors`}
-              placeholder="08123456789"
-            />
-            {errors.nomor_telepon && <p className="text-error text-xs mt-1">{errors.nomor_telepon}</p>}
+          {/* Room Assignment */}
+          <div className="bg-surface-container-lowest rounded-2xl p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-headline font-bold text-primary">Room Assignment</h3>
+              {resident.room_id && (
+                <span className="px-3 py-1 bg-secondary-container text-on-secondary-container text-xs font-label font-bold rounded-full">
+                  Currently: Room {resident.room?.nomor_kamar}
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="font-label text-sm text-on-surface-variant">
+                Pilih Kamar
+              </label>
+              <select
+                value={roomId || ''}
+                onChange={(e) => setRoomId(e.target.value ? Number(e.target.value) : null)}
+                className="w-full px-4 py-3 bg-surface-container-highest border-none rounded-xl focus:ring-2 focus:ring-secondary font-label text-sm"
+              >
+                <option value="">-- Tidak Ada Kamar --</option>
+                {availableRooms.map((room) => (
+                  <option key={room.id} value={room.id}>
+                    Room {room.nomor_kamar} - Rp {room.tarif_dasar.toLocaleString('id-ID')} 
+                    {room.id === resident.room_id ? ' (Current)' : ''}
+                  </option>
+                ))}
+              </select>
+              {availableRooms.length === 0 && !resident.room_id && (
+                <p className="text-xs text-error">Tidak ada kamar tersedia</p>
+              )}
+            </div>
           </div>
 
-          {/* Email */}
-          <div>
-            <label className="block font-label text-sm font-bold text-on-surface mb-2">
-              Email *
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className={`w-full px-4 py-3 bg-surface-container-highest rounded-xl border-2 ${
-                errors.email ? 'border-error' : 'border-transparent'
-              } focus:border-primary focus:outline-none transition-colors`}
-              placeholder="email@example.com"
-            />
-            {errors.email && <p className="text-error text-xs mt-1">{errors.email}</p>}
-          </div>
-
-          {/* Address */}
-          <div>
-            <label className="block font-label text-sm font-bold text-on-surface mb-2">
-              Address
-            </label>
-            <textarea
-              name="alamat"
-              value={formData.alamat}
-              onChange={handleChange}
-              rows={3}
-              className="w-full px-4 py-3 bg-surface-container-highest rounded-xl border-2 border-transparent focus:border-primary focus:outline-none transition-colors resize-none"
-              placeholder="Enter address"
-            />
-          </div>
-
-          {/* Birth Date */}
-          <div>
-            <label className="block font-label text-sm font-bold text-on-surface mb-2">
-              Birth Date
-            </label>
-            <input
-              type="date"
-              name="tanggal_lahir"
-              value={formData.tanggal_lahir}
-              onChange={handleChange}
-              className="w-full px-4 py-3 bg-surface-container-highest rounded-xl border-2 border-transparent focus:border-primary focus:outline-none transition-colors"
-            />
-          </div>
-
-          {/* Gender */}
-          <div>
-            <label className="block font-label text-sm font-bold text-on-surface mb-2">
-              Gender
-            </label>
-            <select
-              name="jenis_kelamin"
-              value={formData.jenis_kelamin}
-              onChange={handleChange}
-              className="w-full px-4 py-3 bg-surface-container-highest rounded-xl border-2 border-transparent focus:border-primary focus:outline-none transition-colors"
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => router.push('/admin/residents')}
+              className="flex-1 px-4 py-3 bg-surface-container-highest text-on-surface rounded-xl font-label font-bold hover:bg-surface-container-high transition-colors"
             >
-              <option value="">Select gender</option>
-              <option value="Laki-laki">Male</option>
-              <option value="Perempuan">Female</option>
-            </select>
-          </div>
-
-          {/* Occupation */}
-          <div>
-            <label className="block font-label text-sm font-bold text-on-surface mb-2">
-              Occupation
-            </label>
-            <input
-              type="text"
-              name="pekerjaan"
-              value={formData.pekerjaan}
-              onChange={handleChange}
-              className="w-full px-4 py-3 bg-surface-container-highest rounded-xl border-2 border-transparent focus:border-primary focus:outline-none transition-colors"
-              placeholder="Enter occupation"
-            />
-          </div>
-
-          {/* Emergency Contact */}
-          <div>
-            <label className="block font-label text-sm font-bold text-on-surface mb-2">
-              Emergency Contact
-            </label>
-            <input
-              type="tel"
-              name="kontak_darurat"
-              value={formData.kontak_darurat}
-              onChange={handleChange}
-              className="w-full px-4 py-3 bg-surface-container-highest rounded-xl border-2 border-transparent focus:border-primary focus:outline-none transition-colors"
-              placeholder="08123456789"
-            />
-          </div>
-
-          {/* Password Section */}
-          <div className="pt-4 border-t border-outline-variant">
-            <h3 className="font-headline font-bold text-on-surface mb-4">Change Password (Optional)</h3>
-            <p className="font-label text-xs text-on-surface-variant mb-4">
-              Leave blank if you don't want to change the password
-            </p>
-
-            {/* New Password */}
-            <div className="mb-4">
-              <label className="block font-label text-sm font-bold text-on-surface mb-2">
-                New Password
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 bg-surface-container-highest rounded-xl border-2 ${
-                  errors.password ? 'border-error' : 'border-transparent'
-                } focus:border-primary focus:outline-none transition-colors`}
-                placeholder="Enter new password"
-              />
-              {errors.password && <p className="text-error text-xs mt-1">{errors.password}</p>}
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label className="block font-label text-sm font-bold text-on-surface mb-2">
-                Confirm New Password
-              </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 bg-surface-container-highest rounded-xl border-2 ${
-                  errors.confirmPassword ? 'border-error' : 'border-transparent'
-                } focus:border-primary focus:outline-none transition-colors`}
-                placeholder="Confirm new password"
-              />
-              {errors.confirmPassword && <p className="text-error text-xs mt-1">{errors.confirmPassword}</p>}
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <div className="pt-6 pb-8">
+              Cancel
+            </button>
             <button
               type="submit"
               disabled={saving}
-              className="w-full py-4 bg-primary text-on-primary font-label font-bold rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-3 bg-secondary text-white rounded-xl font-label font-bold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? (
-                <>
-                  <span className="material-symbols-outlined animate-spin">progress_activity</span>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined">save</span>
-                  Save Changes
-                </>
-              )}
+              {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </form>
