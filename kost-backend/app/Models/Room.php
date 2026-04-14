@@ -17,7 +17,7 @@ class Room extends Model
 
     public function users()
     {
-        return $this->hasMany(User::class);
+        return $this->hasMany(User::class, 'room_id', 'id');
     }
 
     public function isAvailable()

@@ -16,6 +16,16 @@ export default function RegisterResidentPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
+  // Function to generate random password
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let password = '';
+    for (let i = 0; i < 6; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+  };
+
   const [formData, setFormData] = useState({
     nama: '',
     nik: '',
@@ -27,19 +37,11 @@ export default function RegisterResidentPage() {
     foto_penghuni: null as File | null,
   });
 
-  // Function to generate random password
-  const generatePassword = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let password = '';
-    for (let i = 0; i < 6; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return password;
-  };
-
   // Auto-generate password on component mount
   useEffect(() => {
-    setFormData(prev => ({ ...prev, password: generatePassword() }));
+    if (typeof window !== 'undefined' && !formData.password) {
+      setFormData(prev => ({ ...prev, password: generatePassword() }));
+    }
   }, []);
 
   useEffect(() => {
@@ -187,7 +189,7 @@ export default function RegisterResidentPage() {
         </div>
       </header>
 
-      <main className="min-h-screen pt-24 pb-12 px-6 flex items-center justify-center relative overflow-hidden">
+      <main className="min-h-screen pt-24 pb-32 px-6 flex items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 bg-pattern pointer-events-none"></div>
 
         <div className="w-full max-w-[1200px] grid grid-cols-1 md:grid-cols-[420px_1fr] gap-12 items-start relative z-10">
@@ -384,52 +386,58 @@ export default function RegisterResidentPage() {
                   <label className="font-label text-xs font-semibold text-on-surface-variant uppercase tracking-widest">
                     Password (Auto-Generated)
                   </label>
-                  <div className="flex items-center gap-3 bg-surface-container-highest rounded-xl px-4 py-3.5 focus-within:ring-2 focus-within:ring-secondary/20 focus-within:bg-surface-container-lowest transition-all">
-                    <input
-                      className="flex-1 bg-transparent border-none p-0 focus:ring-0 font-body text-primary placeholder:text-outline/50"
-                      placeholder="••••••"
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required
-                      readOnly
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, password: generatePassword() })}
-                      className="p-1.5 hover:bg-secondary/10 rounded-lg transition-colors group"
-                      title="Generate new password"
-                    >
-                      <span className="material-symbols-outlined text-secondary text-lg group-hover:rotate-180 transition-transform duration-300">
-                        refresh
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(formData.password);
-                        showSuccess('Copied!', 'Password copied to clipboard');
-                      }}
-                      className="p-1.5 hover:bg-secondary/10 rounded-lg transition-colors"
-                      title="Copy password"
-                    >
-                      <span className="material-symbols-outlined text-outline hover:text-primary transition-colors text-lg">
-                        content_copy
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="p-1.5 hover:bg-secondary/10 rounded-lg transition-colors"
-                      title="Toggle visibility"
-                    >
-                      <span className="material-symbols-outlined text-outline hover:text-primary transition-colors text-lg">
-                        {showPassword ? 'visibility_off' : 'visibility'}
-                      </span>
-                    </button>
+                  <div className="bg-surface-container-highest rounded-xl p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <input
+                        className="flex-1 bg-transparent border-none p-0 focus:ring-0 font-mono text-base text-primary placeholder:text-outline/50 tracking-wider"
+                        placeholder="••••••"
+                        type={showPassword ? 'text' : 'password'}
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        required
+                        readOnly
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="p-2 hover:bg-secondary/10 rounded-lg transition-colors"
+                        title="Toggle visibility"
+                      >
+                        <span className="material-symbols-outlined text-outline hover:text-primary transition-colors text-xl">
+                          {showPassword ? 'visibility_off' : 'visibility'}
+                        </span>
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 pt-2 border-t border-outline-variant/20">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, password: generatePassword() })}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary/10 hover:bg-secondary/20 rounded-lg transition-colors"
+                        title="Generate new password"
+                      >
+                        <span className="material-symbols-outlined text-secondary text-xl">
+                          refresh
+                        </span>
+                        <span className="text-sm font-semibold text-secondary">Regenerate</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(formData.password);
+                          showSuccess('Copied!', 'Password copied to clipboard');
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
+                        title="Copy password"
+                      >
+                        <span className="material-symbols-outlined text-primary text-xl">
+                          content_copy
+                        </span>
+                        <span className="text-sm font-semibold text-primary">Copy</span>
+                      </button>
+                    </div>
                   </div>
                   <p className="text-xs text-on-surface-variant mt-1">
-                    Password will be automatically generated. Click refresh to generate a new one or copy to save it.
+                    Password will be automatically generated. Click regenerate for a new one or copy to save it.
                   </p>
                 </div>
               </div>

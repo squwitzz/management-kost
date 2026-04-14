@@ -43,53 +43,56 @@ export default function RoomDetailPage() {
     fetchRoomDetail();
   }, [roomId, router]);
 
-  useEffect(() => {
-    // Fetch payments after room data is loaded
-    if (room) {
-      fetchPayments();
-    }
-  }, [room]);
-
   const fetchRoomDetail = async () => {
     try {
-      console.log('Fetching room detail for ID:', roomId);
       const data = await ApiClient.getRoom(parseInt(roomId));
-      console.log('Room data:', data);
-      // Handle various API response shapes
       const roomData = data.room || data.data || data;
+      
       if (roomData && roomData.id) {
         setRoom(roomData);
+        fetchPayments(roomData);
       } else {
-        console.error('Room not found in response:', data);
         await showError('Error', 'Room tidak ditemukan');
       }
     } catch (err: any) {
-      console.error('Failed to fetch room:', err);
       await showError('Error', err.message || 'Failed to load room details');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchPayments = async () => {
+  const fetchPayments = async (roomData: Room) => {
     try {
       // Try to fetch room-specific payments first
       try {
         const data = await ApiClient.getRoomPayments(parseInt(roomId));
-        setPayments(data.payments || data.data || []);
+        const paymentsData = data.payments || data.data || [];
+        setPayments(paymentsData);
         return;
       } catch (roomErr) {
-        console.log('Room-specific endpoint not available, falling back to all payments');
+        // Fallback to all payments
       }
       
       // Fallback: fetch all payments and filter by room
       const data = await ApiClient.getAdminPayments();
-      const allPayments = data.payments || [];
+      const allPayments = data.payments || data.data || [];
       
-      // Filter payments for this room's residents
+      // Get user IDs from room users
+      const roomUserIds = roomData?.users?.map(u => u.id) || [];
+      
+      // Alternative: filter payments where user.room_id matches this room
       const roomPayments = allPayments.filter((p: Payment) => {
-        // Check if payment belongs to any user in this room
-        return room?.users?.some(user => user.id === p.user_id);
+        // Check if payment has user data with room_id
+        if (p.user && p.user.room_id) {
+          return Number(p.user.room_id) === Number(roomData.id);
+        }
+        
+        // Fallback: check if user_id is in roomUserIds
+        if (roomUserIds.length > 0) {
+          return roomUserIds.includes(p.user_id);
+        }
+        
+        return false;
       });
       
       setPayments(roomPayments);

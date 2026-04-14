@@ -107,12 +107,8 @@ export class ApiClient {
 
     if (includeAuth) {
       const token = localStorage.getItem('token');
-      console.log('getHeaders - Token from localStorage:', token ? 'EXISTS' : 'NULL');
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
-        console.log('getHeaders - Authorization header set');
-      } else {
-        console.warn('⚠️ getHeaders - No token available, request will be unauthorized');
       }
     }
 

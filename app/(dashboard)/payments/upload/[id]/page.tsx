@@ -26,40 +26,33 @@ export default function UploadPaymentProofPage() {
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [notes, setNotes] = useState('');
 
+  // Format number with dots as thousand separator
+  const formatRupiah = (amount: number): string => {
+    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
 
-    console.log('=== UPLOAD PAGE AUTH CHECK ===');
-    console.log('Token exists:', !!token);
-    console.log('Token value:', token ? token.substring(0, 20) + '...' : 'null');
-    console.log('User data exists:', !!userData);
-
     if (!token || !userData) {
-      console.error('❌ Missing authentication data - redirecting to login');
       router.push('/login');
       return;
     }
 
     try {
       const parsedUser = JSON.parse(userData);
-      console.log('✅ User parsed successfully');
-      console.log('User ID:', parsedUser.id);
-      console.log('User role:', parsedUser.role);
-      console.log('User name:', parsedUser.nama);
 
       if (parsedUser.role !== 'Penghuni') {
-        console.error('❌ User is not Penghuni, redirecting to admin');
         router.push('/admin/dashboard');
         return;
       }
 
-      console.log('✅ Auth check passed, setting user');
       setUser(parsedUser);
     } catch (error) {
-      console.error('❌ Failed to parse user data:', error);
+      console.error('Failed to parse user data:', error);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       router.push('/login');
@@ -68,60 +61,40 @@ export default function UploadPaymentProofPage() {
 
   const fetchPaymentDetail = async () => {
     if (!user) {
-      console.error('User not set yet, skipping fetch');
       return;
     }
     
     try {
-      console.log('=== FETCHING PAYMENT DETAIL ===');
-      console.log('Payment ID:', paymentId);
-      console.log('Current User ID:', user.id);
-      console.log('Current User Name:', user.nama);
-      console.log('Current User Role:', user.role);
-      
       // Check if token exists
       const token = localStorage.getItem('token');
       if (!token) {
-        console.error('❌ No token found');
         throw new Error('No authentication token found. Please login again.');
       }
       
-      console.log('✅ Token exists, calling API...');
       const data = await ApiClient.getPayment(parseInt(paymentId));
-      console.log('✅ Payment data received:', data);
       
       // Backend may return { payment: {...} } or { data: {...} } or direct object
       const paymentData = data.payment || data.data || data;
       
       if (!paymentData) {
-        console.error('❌ Payment data structure:', data);
         throw new Error('Payment data not found in response');
       }
       
-      console.log('✅ Payment data parsed');
-      console.log('Payment User ID:', paymentData.user_id);
-      console.log('Current User ID:', user.id);
-      console.log('Payment User ID type:', typeof paymentData.user_id);
-      console.log('Current User ID type:', typeof user.id);
-      console.log('Match?', paymentData.user_id == user.id);
-      
       // Validate payment belongs to current user (use == for loose comparison to handle type mismatch)
       if (Number(paymentData.user_id) !== user.id) {
-        console.error('❌ AUTHORIZATION FAILED');
-        console.error('Payment belongs to user:', paymentData.user_id);
-        console.error('But current user is:', user.id);
         throw new Error('You are not authorized to access this payment');
       }
       
-      console.log('✅ All checks passed, setting payment');
+      // Check if payment already has proof uploaded (prevent re-upload)
+      if (paymentData.status_bayar === 'Menunggu Verifikasi' || paymentData.status_bayar === 'Lunas') {
+        await showError('Already Submitted', 'Bukti pembayaran sudah diupload. Menunggu verifikasi admin.');
+        router.push('/payments');
+        return;
+      }
+      
       setPayment(paymentData);
     } catch (err: any) {
-      console.error('❌ Failed to fetch payment:', err);
-      console.error('Error details:', {
-        message: err.message,
-        paymentId,
-        userId: user?.id
-      });
+      console.error('Failed to fetch payment:', err);
       
       // Handle specific error cases
       if (err.message.includes('Unauthorized') || err.message.includes('401') || err.message.includes('Invalid token')) {
@@ -236,25 +209,6 @@ export default function UploadPaymentProofPage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-6 pt-24 space-y-10">
-        {/* Payment Type Selection */}
-        <section className="space-y-4">
-          <p className="font-label text-xs font-semibold uppercase tracking-wider text-outline">
-            Payment Category
-          </p>
-          <div className="grid grid-cols-2 gap-4">
-            <button className="flex items-center justify-center gap-3 p-4 bg-secondary-container text-on-secondary rounded-xl transition-all scale-95 active:scale-90 ring-2 ring-secondary/20">
-              <span className="material-symbols-outlined">home</span>
-              <span className="font-label font-bold text-sm">Room Payment</span>
-            </button>
-            <button 
-              disabled
-              className="flex items-center justify-center gap-3 p-4 bg-surface-container-low text-primary rounded-xl opacity-50 cursor-not-allowed"
-            >
-              <span className="material-symbols-outlined">restaurant</span>
-              <span className="font-label font-bold text-sm">Food Order</span>
-            </button>
-          </div>
-        </section>
 
         {/* Summary Section */}
         <section className="bg-surface-container-low rounded-2xl p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -268,11 +222,88 @@ export default function UploadPaymentProofPage() {
           </div>
           <div className="text-right">
             <span className="text-4xl font-extrabold text-secondary tracking-tighter">
-              Rp {payment.jumlah_tagihan.toLocaleString('id-ID')}
+              Rp {formatRupiah(payment.jumlah_tagihan)}
             </span>
             <p className="font-label text-xs font-bold uppercase tracking-widest text-on-secondary-fixed-variant mt-1">
               {payment.status_bayar === 'Belum Lunas' ? 'Pending Payment' : payment.status_bayar}
             </p>
+          </div>
+        </section>
+
+        {/* Bank Account Information */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-secondary">account_balance</span>
+            <p className="font-label text-xs font-semibold uppercase tracking-wider text-outline">
+              Transfer to Bank Account
+            </p>
+          </div>
+          <div className="bg-gradient-to-br from-secondary/10 to-secondary-container/20 rounded-2xl p-6 space-y-4 border border-secondary/20">
+            {/* BCA Account */}
+            <div className="bg-surface/80 backdrop-blur-sm rounded-xl p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                    <span className="material-symbols-outlined text-primary text-xl">account_balance</span>
+                  </div>
+                  <div>
+                    <p className="font-headline font-bold text-sm text-primary">BCA</p>
+                    <p className="font-label text-xs text-outline">Bank Central Asia</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText('5945122738');
+                    showSuccess('Copied!', 'Account number copied to clipboard');
+                  }}
+                  className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg font-label text-xs font-bold transition-colors flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-sm">content_copy</span>
+                  Copy
+                </button>
+              </div>
+              <div className="pl-13 space-y-1">
+                <p className="font-headline text-2xl font-bold text-primary tracking-wider">5945122738</p>
+                <p className="font-label text-xs text-outline">a/n Muhammad Rizqullah Bakri</p>
+              </div>
+            </div>
+
+            {/* BSI Account */}
+            <div className="bg-surface/80 backdrop-blur-sm rounded-xl p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
+                    <span className="material-symbols-outlined text-secondary text-xl">account_balance</span>
+                  </div>
+                  <div>
+                    <p className="font-headline font-bold text-sm text-primary">BSI</p>
+                    <p className="font-label text-xs text-outline">Bank Syariah Indonesia</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText('7233127722');
+                    showSuccess('Copied!', 'Account number copied to clipboard');
+                  }}
+                  className="px-3 py-1.5 bg-secondary/10 hover:bg-secondary/20 text-secondary rounded-lg font-label text-xs font-bold transition-colors flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-sm">content_copy</span>
+                  Copy
+                </button>
+              </div>
+              <div className="pl-13 space-y-1">
+                <p className="font-headline text-2xl font-bold text-primary tracking-wider">7233127722</p>
+                <p className="font-label text-xs text-outline">a/n Muhammad Rizqullah Bakri</p>
+              </div>
+            </div>
+
+            {/* Info Note */}
+            <div className="flex items-start gap-2 pt-2">
+              <span className="material-symbols-outlined text-secondary text-sm mt-0.5">info</span>
+              <p className="font-label text-xs text-outline leading-relaxed">
+                Transfer sesuai jumlah tagihan dan upload bukti transfer di bawah ini untuk verifikasi pembayaran.
+              </p>
+            </div>
           </div>
         </section>
 

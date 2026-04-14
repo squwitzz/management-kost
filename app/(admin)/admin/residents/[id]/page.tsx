@@ -44,10 +44,6 @@ export default function ResidentDetailPage() {
   const fetchResidentDetail = async () => {
     try {
       const data = await ApiClient.getResident(parseInt(residentId));
-      // Log data to see the shape
-      console.log('Resident data from API:', data);
-      
-      // Backend returns { user: {...} }
       const residentData = data.user || data.data || data;
       setResident(residentData);
     } catch (err) {
@@ -62,17 +58,23 @@ export default function ResidentDetailPage() {
       // Try to fetch user-specific payments first
       try {
         const data = await ApiClient.getUserPayments(parseInt(residentId));
-        setPayments(data.payments || data.data || []);
+        const paymentsData = data.payments || data.data || [];
+        setPayments(paymentsData);
         return;
       } catch (userErr) {
-        console.log('User-specific endpoint not available, falling back to all payments');
+        // Fallback to all payments
       }
       
       // Fallback: fetch all payments and filter by user
       const data = await ApiClient.getAdminPayments();
-      const residentPayments = (data.payments || []).filter(
-        (p: Payment) => p.user_id === parseInt(residentId)
-      );
+      const allPayments = data.payments || data.data || [];
+      
+      const residentPayments = allPayments.filter((p: Payment) => {
+        const paymentUserId = Number(p.user_id);
+        const currentResidentId = Number(residentId);
+        return paymentUserId === currentResidentId;
+      });
+      
       setPayments(residentPayments);
     } catch (err) {
       console.error('Failed to fetch payments:', err);

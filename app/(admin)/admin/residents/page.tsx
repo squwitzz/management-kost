@@ -55,21 +55,17 @@ export default function ResidentsPage() {
 
   const fetchResidents = async () => {
     try {
-      console.log('Fetching residents...');
       // Try dedicated residents endpoint first
       try {
         const data = await ApiClient.getResidents();
-        console.log('Residents data:', data);
         // API may return { users: [...] } or { residents: [...] } or an array
         const residentList = data.users || data.residents || data.data || data || [];
         const list = Array.isArray(residentList) ? residentList : [];
-        console.log('All residents:', list);
         setResidents(list);
       } catch (directErr) {
         console.warn('Direct residents endpoint failed, falling back to rooms:', directErr);
         // Fallback: extract from rooms
         const data = await ApiClient.getRooms();
-        console.log('Rooms data:', data);
         const allResidents: User[] = [];
         const roomList = data.rooms || data.data || data || [];
         (Array.isArray(roomList) ? roomList : []).forEach((room: any) => {
@@ -79,7 +75,6 @@ export default function ResidentsPage() {
             });
           }
         });
-        console.log('All residents (from rooms):', allResidents);
         setResidents(allResidents);
       }
     } catch (err: any) {
@@ -281,7 +276,7 @@ export default function ResidentsPage() {
       {/* Floating Action Button */}
       <button
         onClick={() => router.push('/admin/register-resident')}
-        className="fixed bottom-24 right-6 w-14 h-14 bg-secondary rounded-full flex items-center justify-center text-white shadow-[0_16px_32px_rgba(0,62,198,0.2)] active:scale-95 transition-transform"
+        className="fixed bottom-32 right-6 w-14 h-14 bg-secondary rounded-full flex items-center justify-center text-white shadow-[0_16px_32px_rgba(0,62,198,0.2)] active:scale-95 transition-transform md:bottom-6"
       >
         <span className="material-symbols-outlined">person_add</span>
       </button>
