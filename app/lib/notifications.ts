@@ -112,11 +112,8 @@ export const subscribeToPushNotifications = async (
   token: string
 ): Promise<boolean> => {
   try {
-    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!vapidPublicKey) {
-      console.error('VAPID public key not found');
-      return false;
-    }
+    // VAPID public key - this is safe to hardcode as it's public
+    const vapidPublicKey = 'BG5zzl3DBettRZysFO1OzjvX13vphA9t9JU2D6QpQY02uHb1nMk5UVAZKbPJCZaBqBN6nrjqx2-mo-qBrE1eaxw';
 
     // Check if already subscribed
     let subscription = await registration.pushManager.getSubscription();
