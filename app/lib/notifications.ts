@@ -112,6 +112,18 @@ export const subscribeToPushNotifications = async (
   token: string
 ): Promise<boolean> => {
   try {
+    // Check if push is supported
+    if (!('pushManager' in registration)) {
+      console.error('Push messaging is not supported');
+      return false;
+    }
+
+    // Check notification permission
+    if (Notification.permission !== 'granted') {
+      console.log('Notification permission not granted, skipping push subscription');
+      return false;
+    }
+
     // VAPID public key - this is safe to hardcode as it's public
     const vapidPublicKey = 'BG5zzl3DBettRZysFO1OzjvX13vphA9t9JU2D6QpQY02uHb1nMk5UVAZKbPJCZaBqBN6nrjqx2-mo-qBrE1eaxw';
 
@@ -119,12 +131,28 @@ export const subscribeToPushNotifications = async (
     let subscription = await registration.pushManager.getSubscription();
     
     if (!subscription) {
-      // Create new subscription
-      const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: convertedVapidKey as BufferSource,
-      });
+      try {
+        // Create new subscription
+        const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedVapidKey as BufferSource,
+        });
+        console.log('New push subscription created');
+      } catch (subscribeError: any) {
+        // Handle specific errors
+        if (subscribeError.name === 'AbortError') {
+          console.error('Push subscription failed: Service may be unavailable or permission was denied previously');
+          console.log('To fix: Clear site data in browser settings and allow notifications again');
+        } else if (subscribeError.name === 'NotAllowedError') {
+          console.error('Push subscription failed: Permission denied');
+        } else {
+          console.error('Push subscription failed:', subscribeError);
+        }
+        return false;
+      }
+    } else {
+      console.log('Using existing push subscription');
     }
 
     // Send subscription to backend
@@ -142,14 +170,16 @@ export const subscribeToPushNotifications = async (
     });
 
     if (response.ok) {
-      console.log('Push subscription saved to backend');
+      const data = await response.json();
+      console.log('Push subscription saved to backend:', data);
       return true;
     } else {
-      console.error('Failed to save push subscription:', await response.text());
+      const errorText = await response.text();
+      console.error('Failed to save push subscription to backend:', response.status, errorText);
       return false;
     }
-  } catch (error) {
-    console.error('Error subscribing to push notifications:', error);
+  } catch (error: any) {
+    console.error('Error subscribing to push notifications:', error.message || error);
     return false;
   }
 };
