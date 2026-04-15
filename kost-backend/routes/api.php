@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\FoodOrderController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PeraturanController;
+use App\Http\Controllers\Api\PushNotificationController;
 use App\Http\Controllers\Api\RoomController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;

@@ -8,7 +8,12 @@
  * 2. Add push notification calls after each Notification::create()
  */
 
-$baseDir = __DIR__ . '/../kost-backend';
+$baseDir = __DIR__ . '/kost-backend';
+
+// If not found, try parent directory
+if (!is_dir($baseDir)) {
+    $baseDir = __DIR__ . '/../kost-backend';
+}
 
 // Check if kost-backend exists
 if (!is_dir($baseDir)) {

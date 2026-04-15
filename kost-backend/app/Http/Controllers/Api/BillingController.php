@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Carbon\Carbon;
+use App\Http\Controllers\Api\PushNotificationController;
 
 class BillingController extends Controller
 {
@@ -401,6 +402,14 @@ class BillingController extends Controller
             'tipe' => 'Tagihan',
         ]);
 
+        // Send push notification
+        PushNotificationController::sendPushNotification(
+            $payment->user_id,
+            'Tagihan Baru',
+            "Tagihan untuk periode {$payment->bulan_dibayar} sebesar Rp " . number_format($payment->jumlah_tagihan, 0, ',', '.') . " telah diterbitkan. Jatuh tempo: " . $payment->due_date->format('d M Y'),
+            '/payments'
+        );
+
         return response()->json([
             'message' => 'Payment finalized successfully',
             'payment' => $payment,
@@ -455,6 +464,14 @@ class BillingController extends Controller
                 'pesan' => "Tagihan untuk periode {$payment->bulan_dibayar} sebesar Rp " . number_format($payment->jumlah_tagihan, 0, ',', '.') . " telah diterbitkan. Jatuh tempo: " . $payment->due_date->format('d M Y'),
                 'tipe' => 'Tagihan',
             ]);
+            
+            // Send push notification
+            PushNotificationController::sendPushNotification(
+                $payment->user_id,
+                'Tagihan Baru',
+                "Tagihan untuk periode {$payment->bulan_dibayar} sebesar Rp " . number_format($payment->jumlah_tagihan, 0, ',', '.') . " telah diterbitkan. Jatuh tempo: " . $payment->due_date->format('d M Y'),
+                '/payments'
+            );
         }
 
         return response()->json([

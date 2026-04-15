@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Models\User;
+use App\Http\Controllers\Api\PushNotificationController;
 
 class PaymentController extends Controller
 {
@@ -164,6 +165,14 @@ class PaymentController extends Controller
                     'pesan'   => "Penghuni {$user->nama} telah mengunggah bukti pembayaran untuk bulan {$payment->bulan_dibayar}",
                     'tipe'    => 'Pembayaran',
                 ]);
+                
+                // Send push notification
+                PushNotificationController::sendPushNotification(
+                    $admin->id,
+                    'Bukti Pembayaran Baru',
+                    "Penghuni {$user->nama} telah mengunggah bukti pembayaran untuk bulan {$payment->bulan_dibayar}",
+                    '/admin/payments'
+                );
             }
 
             return response()->json([
@@ -210,6 +219,14 @@ class PaymentController extends Controller
             'tipe'    => 'Pembayaran',
         ]);
 
+        // Send push notification
+        PushNotificationController::sendPushNotification(
+            $payment->user_id,
+            'Status Pembayaran',
+            "Pembayaran Anda untuk periode {\$payment->bulan_tahun} telah {\$statusText}",
+            '/payments'
+        );
+
         return response()->json([
             'message' => 'Status pembayaran berhasil diupdate',
             'payment' => $payment,
@@ -248,6 +265,14 @@ class PaymentController extends Controller
             'pesan'   => "Tagihan untuk bulan {$request->bulan_dibayar} sebesar Rp " . number_format($request->jumlah_tagihan, 0, ',', '.'),
             'tipe'    => 'Tagihan',
         ]);
+
+        // Send push notification
+        PushNotificationController::sendPushNotification(
+            $request->user_id,
+            'Tagihan Baru',
+            "Tagihan baru untuk periode {\$payment->bulan_tahun} sebesar Rp " . number_format($payment->jumlah, 0, ',', '.'),
+            '/payments'
+        );
 
         return response()->json([
             'message' => 'Tagihan berhasil dibuat',

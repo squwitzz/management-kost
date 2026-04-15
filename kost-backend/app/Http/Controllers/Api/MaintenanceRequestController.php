@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use App\Http\Controllers\Api\PushNotificationController;
 
 class MaintenanceRequestController extends Controller
 {
@@ -158,6 +159,14 @@ class MaintenanceRequestController extends Controller
                     'pesan' => "{$user->nama} melaporkan masalah {$validated['kategori']}",
                     'tipe' => 'Sistem',
                 ]);
+                
+                // Send push notification
+                PushNotificationController::sendPushNotification(
+                    $admin->id,
+                    'Laporan Baru',
+                    "{$user->nama} melaporkan masalah {$validated['kategori']}",
+                    '/admin/requests'
+                );
             }
         }
 
@@ -215,6 +224,14 @@ class MaintenanceRequestController extends Controller
                 'pesan' => "Laporan {$maintenanceRequest->kategori} Anda telah diselesaikan",
                 'tipe' => 'Sistem',
             ]);
+            
+            // Send push notification
+            PushNotificationController::sendPushNotification(
+                $maintenanceRequest->user_id,
+                'Laporan Selesai',
+                "Laporan {$maintenanceRequest->kategori} Anda telah diselesaikan",
+                '/requests'
+            );
         }
 
         $maintenanceRequest->update($validated);
