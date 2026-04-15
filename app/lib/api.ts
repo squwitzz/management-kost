@@ -831,7 +831,7 @@ export class ApiClient {
   }
 
   static async getPaymentSettings() {
-    const response = await fetchWithAuth(`${API_URL}/admin/payment-settings`, {
+    const response = await fetchWithAuth(`${API_URL}/billing/settings`, {
       headers: this.getHeaders(),
     });
 
@@ -844,8 +844,8 @@ export class ApiClient {
   }
 
   static async updatePaymentSettings(data: any) {
-    const response = await fetchWithAuth(`${API_URL}/admin/payment-settings`, {
-      method: 'POST',
+    const response = await fetchWithAuth(`${API_URL}/billing/settings`, {
+      method: 'PUT',
       headers: {
         ...this.getHeaders(),
         'Content-Type': 'application/json',
