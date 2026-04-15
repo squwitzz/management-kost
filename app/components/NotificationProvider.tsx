@@ -5,7 +5,8 @@ import { usePathname } from 'next/navigation';
 import { 
   registerServiceWorker, 
   requestNotificationPermission,
-  showNotification 
+  showNotification,
+  subscribeToPushNotifications
 } from '@/app/lib/notifications';
 import { usePageVisibility } from '@/app/lib/useRealtime';
 import { getNotificationRoute } from '@/app/lib/notificationRouter';
@@ -16,13 +17,15 @@ export default function NotificationProvider() {
   const isVisible = usePageVisibility();
   const [isRegistered, setIsRegistered] = useState(false);
   const [lastNotificationId, setLastNotificationId] = useState<number>(0);
+  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
     // Defer service worker registration to avoid blocking initial load
     const timer = setTimeout(() => {
       const initServiceWorker = async () => {
-        const registration = await registerServiceWorker();
-        if (registration) {
+        const reg = await registerServiceWorker();
+        if (reg) {
+          setRegistration(reg);
           setIsRegistered(true);
           console.log('Service Worker registered');
         }
@@ -35,18 +38,25 @@ export default function NotificationProvider() {
   }, []);
 
   useEffect(() => {
-    // Request notification permission after user is logged in
-    if (typeof window === 'undefined') return;
+    // Request notification permission and subscribe to push after user is logged in
+    if (typeof window === 'undefined' || !registration) return;
     
     const token = localStorage.getItem('token');
     if (token && isRegistered) {
-      requestNotificationPermission().then((granted) => {
+      requestNotificationPermission().then(async (granted) => {
         if (granted) {
           console.log('Notification permission granted');
+          
+          // Subscribe to push notifications
+          const API_URL = getApiUrl();
+          const subscribed = await subscribeToPushNotifications(registration, API_URL, token);
+          if (subscribed) {
+            console.log('Subscribed to push notifications');
+          }
         }
       });
     }
-  }, [isRegistered, pathname]);
+  }, [isRegistered, registration, pathname]);
 
   useEffect(() => {
     if (!isVisible || !isRegistered) return;
