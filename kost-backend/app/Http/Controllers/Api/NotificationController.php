@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Api\PushNotificationController;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class NotificationController extends Controller

@@ -218,4 +218,10 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/food-orders/{id}', [FoodOrderController::class, 'show']);
     Route::post('/food-orders', [FoodOrderController::class, 'store']);
     Route::put('/food-orders/{id}/status', [FoodOrderController::class, 'updateStatus']); // Admin only
+
+    // Push Notification Routes
+    Route::post('/push-subscriptions', [PushNotificationController::class, 'subscribe']);
+    Route::delete('/push-subscriptions', [PushNotificationController::class, 'unsubscribe']);
+    Route::get('/push-notifications/test', [PushNotificationController::class, 'test']); // Remove in production
+    
 });
